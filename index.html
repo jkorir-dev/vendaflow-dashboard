@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VendaFlow Dashboard - Independent Merchant Control Center</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header class="dashboard-header">
+        <div class="logo-container">
+            <h1>VendaFlow</h1>
+            <span class="badge-portal">Merchant Control Center</span>
+        </div>
+        <div class="profile-container">
+            <p>Warehouse Hub: <strong id="active-hub">Nairobi Central</strong></p>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        
+        <section class="metrics-row" aria-label="Store Analytics Dashboard">
+            <div class="metric-card card-gross">
+                <h3>Gross Store Sales</h3>
+                <p id="metric-gross">KSh 0.00</p>
+            </div>
+            <div class="metric-card card-fees">
+                <h3>Marketplace Fees (10%)</h3>
+                <p id="metric-fees">KSh 0.00</p>
+            </div>
+            <div class="metric-card card-net">
+                <h3>Net Merchant Payout</h3>
+                <p id="metric-net">KSh 0.00</p>
+            </div>
+        </section>
+
+        <div class="workspace-layout">
+            
+            <section class="form-panel" aria-labelledby="form-title">
+                <h2 id="form-title">List New Product Stock</h2>
+                <form id="product-entry-form">
+                    <div class="form-group">
+                        <label for="prod-title">Product Title</label>
+                        <input type="text" id="prod-title" placeholder="e.g., Slim-Fit Corduroy Jacket" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-category">Marketplace Category</label>
+                        <select id="prod-category" required>
+                            <option value="" disabled selected>Select category...</option>
+                            <option value="Fashion">Fashion & Apparel</option>
+                            <option value="Electronics">Electronics & Tech</option>
+                            <option value="Home">Home & Living</option>
+                        </select>
+                    </div>
+                    <div class="form-group-row">
+                        <div class="form-group">
+                            <label for="prod-cost">Wholesale Supply Cost (KSh)</label>
+                            <input type="number" id="prod-cost" min="1" placeholder="400" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prod-retail">Retail Sale Price (KSh)</label>
+                            <input type="number" id="prod-retail" min="1" placeholder="1200" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-stock">Initial Stock Quantity</label>
+                        <input type="number" id="prod-stock" min="1" placeholder="10" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Add Item to VendaFlow Catalog</button>
+                </form>
+            </section>
+
+            <section class="catalog-panel" aria-labelledby="catalog-title">
+                <div class="catalog-header-bar">
+                    <h2 id="catalog-title">Active Product Stock List</h2>
+                    
+                    <div class="search-box-container">
+                        <input type="text" id="catalog-search" placeholder="Filter by product title or SKU code...">
+                    </div>
+                </div>
+
+                <div id="inventory-grid" class="inventory-display-matrix">
+                    <p class="empty-state">Loading active VendaFlow stock metrics data...</p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
