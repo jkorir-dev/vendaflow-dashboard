@@ -20,8 +20,7 @@ function updateFinancialAnalytics() {
     const PLATFORM_FEE_RATE = 0.10;
 
     const totalGrossRevenue = appInventory.reduce((accumulator, item) => {
-        const potentialRevenue = item.retailPrice * item.stockQuantity;
-        return accumulator + potentialRevenue;
+        return accumulator + (item.retailPrice * item.stockQuantity);
     }, 0);
 
     const accumulatedFees = totalGrossRevenue * PLATFORM_FEE_RATE;
@@ -44,11 +43,12 @@ function renderInventoryCatalog(productsList) {
         const cardNode = document.createElement('div');
         const isOutOfStock = item.stockQuantity <= 0;
         
-        cardNode.className = `product-profile-card ${isOutOfStock ? 'stock-alert' : 'stock-active'}`;
+        cardNode.className = 'product-profile-card';
         cardNode.style.border = '1px solid #cbd5e1';
         cardNode.style.padding = '1rem';
         cardNode.style.borderRadius = '6px';
         cardNode.style.background = isOutOfStock ? '#fee2e2' : '#ffffff';
+        cardNode.style.marginBottom = '1rem';
 
         cardNode.innerHTML = `
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -69,11 +69,8 @@ function renderInventoryCatalog(productsList) {
             </div>
         `;
 
-        const saleBtn = cardNode.querySelector('.btn-sale-action');
-        saleBtn.addEventListener('click', () => handleSaleSimulation(item.id));
-
-        const deleteBtn = cardNode.querySelector('.btn-delete-action');
-        deleteBtn.addEventListener('click', () => handleProductDeletion(item.id));
+        cardNode.querySelector('.btn-sale-action').addEventListener('click', () => handleSaleSimulation(item.id));
+        cardNode.querySelector('.btn-delete-action').addEventListener('click', () => handleProductDeletion(item.id));
 
         displayGrid.appendChild(cardNode);
     });
