@@ -1,3 +1,14 @@
 {
-  "products": []
+  "products": [
+    {
+      "title": "slim fitjacket",
+      "category": "Fashion",
+      "wholesaleCost": 700,
+      "retailPrice": 1200,
+      "stockQuantity": 0,
+      "sku": "FAS-SLIM-7622",
+      "id": "ovxWLGlfj8Q"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
 }
