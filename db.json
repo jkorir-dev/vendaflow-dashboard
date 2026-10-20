@@ -14,7 +14,7 @@
       "category": "Electronics",
       "wholesaleCost": 35000,
       "retailPrice": 45000,
-      "stockQuantity": 3,
+      "stockQuantity": 2,
       "sku": "ELE-FRID-2743",
       "id": "J6U0YVnqjSs"
     },
@@ -30,11 +30,32 @@
     {
       "title": "slim fitjacket",
       "category": "Fashion",
+      "wholesaleCost": 700,
+      "retailPrice": 1500,
+      "stockQuantity": 10,
+      "sku": "FAS-SLIM-2948",
+      "dateLogged": "20 Oct 2026, 11:31",
+      "id": "AADOBMqHEzg"
+    },
+    {
+      "title": "fridge",
+      "category": "Electronics",
       "wholesaleCost": 35000,
       "retailPrice": 45000,
       "stockQuantity": 5,
-      "sku": "FAS-SLIM-7091",
-      "id": "946-C4ksyAg"
+      "sku": "ELE-FRID-2563",
+      "dateLogged": "20 Oct 2026, 11:35",
+      "id": "82O-z7_u4_s"
+    },
+    {
+      "title": "fridge",
+      "category": "Electronics",
+      "wholesaleCost": 35000,
+      "retailPrice": 45000,
+      "stockQuantity": 5,
+      "sku": "ELE-FRID-8128",
+      "dateLogged": "20 Oct 2026, 11:40",
+      "id": "ZEg4K-sZrv0"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

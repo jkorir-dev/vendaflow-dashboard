@@ -36,10 +36,13 @@ function checkAuthStatus() {
     }
 }
 
-function showLoggedInState(username) {
+async function showLoggedInState(username) {
     loggedOutView.style.display = 'none';
     loggedInView.style.display = 'flex';
     userDisplay.textContent = username;
+    appInventory = await fetchProducts();
+    updateFinancialAnalytics();
+    renderInventoryCatalog(appInventory);
 }
 
 function showLoggedOutState() {
@@ -47,6 +50,11 @@ function showLoggedOutState() {
     loggedOutView.style.display = 'flex';
     if (loginForm) loginForm.reset();
     if (signupForm) signupForm.reset();
+    
+    grossSalesEl.textContent = "KSh 0.00";
+    platformFeesEl.textContent = "KSh 0.00";
+    netPayoutEl.textContent = "KSh 0.00";
+    renderInventoryCatalog([]);
 }
 
 if (toggleSignupBtn && cancelSignupBtn) {
@@ -128,6 +136,18 @@ function updateFinancialAnalytics() {
 function renderInventoryCatalog(productsList) {
     displayGrid.innerHTML = '';
 
+    const activeUserSession = localStorage.getItem('vendaflow_session_user');
+    if (!activeUserSession) {
+        displayGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f1f5f9;">
+                <span style="font-size: 3rem;">🔒</span>
+                <h3 style="margin-top: 1rem; color: #1e293b;">Catalog Hidden</h3>
+                <p style="color: #64748b; margin-top: 0.25rem;">Please Log In or Sign Up above to view your active product inventory.</p>
+            </div>
+        `;
+        return;
+    }
+
     if (productsList.length === 0) {
         displayGrid.innerHTML = '<p class="empty-state">No matching inventory items found.</p>';
         return;
@@ -147,7 +167,7 @@ function renderInventoryCatalog(productsList) {
         const KES_TO_USD_RATE = 130.00;
         const liveRates = window.currentExchangeRates;
         const conversionRate = liveRates && liveRates.KES ? Number(liveRates.KES) : KES_TO_USD_RATE;
-        const priceInUSD = (Number(item.retailPrice) / conversionRate).toFixed(2);
+        const priceInUSD = (Number(item.retailPrice) / (conversionRate || 130.00)).toFixed(2);
 
         cardNode.innerHTML = `
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -185,17 +205,15 @@ if (entryForm) {
         const inputCost = Number(document.getElementById('prod-cost').value);
         const inputRetail = Number(document.getElementById('prod-retail').value);
         const inputStock = Number(document.getElementById('prod-stock').value);
+        const inputDate = document.getElementById('prod-date').value;
 
-        const generatedSku = `${inputCategory.substring(0, 3).toUpperCase()}-${inputTitle.replace(/\s+/g, '').substring(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`;
-
-        const currentDate = new Date();
-        const dynamicDateString = currentDate.toLocaleDateString('en-KE', {
+        const formattedDate = new Date(inputDate).toLocaleDateString('en-KE', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: 'numeric'
         });
+
+        const generatedSku = `${inputCategory.substring(0, 3).toUpperCase()}-${inputTitle.replace(/\s+/g, '').substring(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`;
 
         const newProductPayload = {
             title: inputTitle,
@@ -204,36 +222,34 @@ if (entryForm) {
             retailPrice: inputRetail,
             stockQuantity: inputStock,
             sku: generatedSku,
-            dateLogged: dynamicDateString
+            dateLogged: formattedDate
         };
 
         try {
             const savedProduct = await createProduct(newProductPayload);
             appInventory.push(savedProduct);
-            updateFinancialAnalytics();
-            renderInventoryCatalog(appInventory);
-            entryForm.reset();
-        } catch (error) {
-            alert('Failed to log new inventory item.');
-        }
-    });
+updateFinancialAnalytics();
+renderInventoryCatalog(appInventory);
+entryForm.reset();
+} catch (error) {
+alert('Failed to log new inventory item.');
+}
+});
 }
 
 async function handleSaleSimulation(productId) {
-    const targetItem = appInventory.find(item => item.id === productId);
-    if (!targetItem || targetItem.stockQuantity <= 0) return;
-
-    const originalQuantity = targetItem.stockQuantity;
-    targetItem.stockQuantity -= 1;
-
-    try {
-        await updateProductStock(productId, { stockQuantity: targetItem.stockQuantity });
-        updateFinancialAnalytics();
-        renderInventoryCatalog(appInventory);
-    } catch (error) {
-        targetItem.stockQuantity = originalQuantity;
-        alert('Failed to process sale mutation.');
-    }
+const targetItem = appInventory.find(item => item.id === productId);
+if (!targetItem || targetItem.stockQuantity <= 0) return;
+const originalQuantity = targetItem.stockQuantity;
+targetItem.stockQuantity -= 1;
+try {
+await updateProductStock(productId, { stockQuantity: targetItem.stockQuantity });
+updateFinancialAnalytics();
+renderInventoryCatalog(appInventory);
+} catch (error) {
+targetItem.stockQuantity = originalQuantity;
+alert('Failed to process sale mutation.');
+}
 }
 
 async function handleProductDeletion(productId) {
