@@ -13,8 +13,29 @@
             <h1>VendaFlow</h1>
             <span class="badge-portal">Merchant Control Center</span>
         </div>
-        <div class="profile-container">
-            <p>Warehouse Hub: <strong id="active-hub">Nairobi Central</strong></p>
+        
+        <div class="profile-container" id="auth-profile-section">
+            <div id="auth-logged-out" class="auth-flex-container">
+                <form id="inline-login-form" class="inline-auth-form">
+                    <input type="text" id="login-username" placeholder="Username" required autocomplete="username">
+                    <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+                    <button type="submit" class="btn-auth-action">Login</button>
+                    <button type="button" id="btn-toggle-signup" class="btn-auth-action btn-signup-toggle-style">Sign Up</button>
+                </form>
+                
+                <form id="inline-signup-form" class="inline-auth-form" style="display: none;">
+                    <input type="text" id="signup-username" placeholder="Choose Username" required>
+                    <input type="password" id="signup-password" placeholder="Create Password" required>
+                    <button type="submit" class="btn-auth-action btn-success-style">Register</button>
+                    <button type="button" id="btn-cancel-signup" class="btn-auth-action btn-logout-style">Cancel</button>
+                </form>
+            </div>
+
+            <div id="auth-logged-in" class="auth-flex-container" style="display: none;">
+                <p>Hub: <strong id="active-hub">Nairobi Central</strong></p>
+                <span class="user-avatar-tag" id="user-display-name">Vendor</span>
+                <button id="btn-logout" class="btn-auth-action btn-logout-style">Logout</button>
+            </div>
         </div>
     </header>
 

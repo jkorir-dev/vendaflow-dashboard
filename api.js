@@ -1,4 +1,5 @@
 const BASE_URL = 'http://localhost:3000/products';
+const CURRENCY_API_URL = 'https://er-api.com';
 
 export async function fetchProducts() {
     try {
@@ -51,5 +52,17 @@ export async function deleteProductListing(id) {
     } catch (error) {
         console.error('API Error:', error);
         return false;
+    }
+}
+
+export async function fetchExchangeRates() {
+    try {
+        const response = await fetch(CURRENCY_API_URL);
+        if (!response.ok) throw new Error('Failed to fetch exchange rates');
+        const data = await response.json();
+        return data.rates;
+    } catch (error) {
+        console.error('Currency API Error:', error);
+        return null;
     }
 }
