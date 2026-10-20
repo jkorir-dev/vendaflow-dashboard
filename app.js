@@ -168,8 +168,12 @@ function renderInventoryCatalog(productsList) {
         const liveRates = window.currentExchangeRates;
         const conversionRate = liveRates && liveRates.KES ? Number(liveRates.KES) : KES_TO_USD_RATE;
         const priceInUSD = (Number(item.retailPrice) / (conversionRate || 130.00)).toFixed(2);
+        const productImageSrc = item.imageUrl || 'https://unsplash.com';
 
         cardNode.innerHTML = `
+            <div style="width: 100%; height: 160px; border-radius: 4px; overflow: hidden; margin-bottom: 0.75rem; background: #f1f5f9;">
+                <img src="${productImageSrc}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                 <span style="font-size: 0.8rem; padding: 0.2rem 0.4rem; background: #e2e8f0; border-radius: 4px;">${item.category}</span>
                 <span style="font-size: 0.8rem; font-weight: bold; color: ${isOutOfStock ? '#ef4444' : '#10b981'};">
@@ -206,6 +210,7 @@ if (entryForm) {
         const inputRetail = Number(document.getElementById('prod-retail').value);
         const inputStock = Number(document.getElementById('prod-stock').value);
         const inputDate = document.getElementById('prod-date').value;
+        const imageFileInput = document.getElementById('prod-image').files;
 
         const formattedDate = new Date(inputDate).toLocaleDateString('en-KE', {
             year: 'numeric',
@@ -215,64 +220,84 @@ if (entryForm) {
 
         const generatedSku = `${inputCategory.substring(0, 3).toUpperCase()}-${inputTitle.replace(/\s+/g, '').substring(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`;
 
-        const newProductPayload = {
-            title: inputTitle,
-            category: inputCategory,
-            wholesaleCost: inputCost,
-            retailPrice: inputRetail,
-            stockQuantity: inputStock,
-            sku: generatedSku,
-            dateLogged: formattedDate
+        const convertBase64 = (file) => {
+            if (!file || file.length === 0) return Promise.resolve(null);
+            return new Promise((resolve, reject) => {
+                const fileReader = new FileReader();
+                fileReader.readAsDataURL(file[0]);
+                fileReader.onload = () => resolve(fileReader.result);
+                fileReader.onerror = (error) => reject(error);
+            });
         };
 
         try {
+            const base64ImageUrl = await convertBase64(imageFileInput);
+
+            const newProductPayload = {
+                title: inputTitle,
+                category: inputCategory,
+                wholesaleCost: inputCost,
+                retailPrice: inputRetail,
+                stockQuantity: inputStock,
+                sku: generatedSku,
+                dateLogged: formattedDate,
+                imageUrl: base64ImageUrl
+            };
+
+       
             const savedProduct = await createProduct(newProductPayload);
             appInventory.push(savedProduct);
-updateFinancialAnalytics();
-renderInventoryCatalog(appInventory);
-entryForm.reset();
-} catch (error) {
-alert('Failed to log new inventory item.');
-}
-});
+            updateFinancialAnalytics();
+            renderInventoryCatalog(appInventory);
+            entryForm.reset();
+        } catch (error) {
+            alert('Failed to log new inventory item.');
+        }
+    });
 }
 
 async function handleSaleSimulation(productId) {
-const targetItem = appInventory.find(item => item.id === productId);
-if (!targetItem || targetItem.stockQuantity <= 0) return;
-const originalQuantity = targetItem.stockQuantity;
-targetItem.stockQuantity -= 1;
-try {
-await updateProductStock(productId, { stockQuantity: targetItem.stockQuantity });
-updateFinancialAnalytics();
-renderInventoryCatalog(appInventory);
-} catch (error) {
-targetItem.stockQuantity = originalQuantity;
-alert('Failed to process sale mutation.');
-}
+    const targetItem = appInventory.find(item => item.id === productId);
+    if (!targetItem || targetItem.stockQuantity <= 0) return;
+
+    const originalQuantity = targetItem.stockQuantity;
+    targetItem.stockQuantity -= 1;
+
+    try {
+        await updateProductStock(productId, { stockQuantity: targetItem.stockQuantity });
+        updateFinancialAnalytics();
+        renderInventoryCatalog(appInventory);
+    } catch (error) {
+        targetItem.stockQuantity = originalQuantity;
+        alert('Failed to process sale mutation.');
+    }
 }
 
 async function handleProductDeletion(productId) {
-const userConfirmed = confirm('Are you sure you want to completely remove this listing?');
-if (!userConfirmed) return;
-const successfulDeletion = await deleteProductListing(productId);
-if (successfulDeletion) {
-appInventory = appInventory.filter(item => item.id !== productId);
-updateFinancialAnalytics();
-renderInventoryCatalog(appInventory);
-} else {
-alert('Failed to complete item deletion.');
-}
+    const userConfirmed = confirm('Are you sure you want to completely remove this listing?');
+    if (!userConfirmed) return;
+
+    const successfulDeletion = await deleteProductListing(productId);
+    if (successfulDeletion) {
+        appInventory = appInventory.filter(item => item.id !== productId);
+        updateFinancialAnalytics();
+        renderInventoryCatalog(appInventory);
+    } else {
+        alert('Failed to complete item deletion.');
+    }
 }
 
 if (searchInput) {
-searchInput.addEventListener('input', (event) => {
-const searchNormalizedQuery = event.target.value.toLowerCase().trim();
-const filteredResults = appInventory.filter(item => {
-return item.title.toLowerCase().includes(searchNormalizedQuery) ||
-item.sku.toLowerCase().includes(searchNormalizedQuery);
-});
-renderInventoryCatalog(filteredResults);
-});
+    searchInput.addEventListener('input', (event) => {
+        const searchNormalizedQuery = event.target.value.toLowerCase().trim();
+        
+        const filteredResults = appInventory.filter(item => {
+            return item.title.toLowerCase().includes(searchNormalizedQuery) || 
+                   item.sku.toLowerCase().includes(searchNormalizedQuery);
+        });
+
+        renderInventoryCatalog(filteredResults);
+    });
 }
+
 document.addEventListener('DOMContentLoaded', initializeDashboard);
