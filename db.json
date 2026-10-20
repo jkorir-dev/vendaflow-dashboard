@@ -8,6 +8,33 @@
       "stockQuantity": 0,
       "sku": "FAS-SLIM-7622",
       "id": "ovxWLGlfj8Q"
+    },
+    {
+      "title": "fridge",
+      "category": "Electronics",
+      "wholesaleCost": 35000,
+      "retailPrice": 45000,
+      "stockQuantity": 3,
+      "sku": "ELE-FRID-2743",
+      "id": "J6U0YVnqjSs"
+    },
+    {
+      "title": "slim fitjacket",
+      "category": "Fashion",
+      "wholesaleCost": 600,
+      "retailPrice": 1200,
+      "stockQuantity": 9,
+      "sku": "FAS-SLIM-4968",
+      "id": "8wL8RPtuR4I"
+    },
+    {
+      "title": "slim fitjacket",
+      "category": "Fashion",
+      "wholesaleCost": 35000,
+      "retailPrice": 45000,
+      "stockQuantity": 5,
+      "sku": "FAS-SLIM-7091",
+      "id": "946-C4ksyAg"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
