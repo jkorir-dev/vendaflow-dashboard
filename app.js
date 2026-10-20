@@ -64,9 +64,16 @@ if (loginForm) {
     loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const usernameInput = document.getElementById('login-username').value.trim();
-        if (usernameInput) {
+        const passwordInput = document.getElementById('login-password').value;
+
+        const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
+        const matchingUser = usersDb.find(user => user.username === usernameInput && user.password === passwordInput);
+
+        if (matchingUser) {
             localStorage.setItem('vendaflow_session_user', usernameInput);
             showLoggedInState(usernameInput);
+        } else {
+            alert('Access Denied: Invalid username or password. Please Sign Up first!');
         }
     });
 }
@@ -75,12 +82,24 @@ if (signupForm) {
     signupForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const newUsername = document.getElementById('signup-username').value.trim();
-        if (newUsername) {
-            localStorage.setItem('vendaflow_session_user', newUsername);
-            showLoggedInState(newUsername);
-            signupForm.style.display = 'none';
-            loginForm.style.display = 'flex';
+        const newPassword = document.getElementById('signup-password').value;
+
+        const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
+        const userExists = usersDb.some(user => user.username === newUsername);
+
+        if (userExists) {
+            alert('Username is already taken!');
+            return;
         }
+
+        usersDb.push({ username: newUsername, password: newPassword });
+        localStorage.setItem('vendaflow_users', JSON.stringify(usersDb));
+        
+        localStorage.setItem('vendaflow_session_user', newUsername);
+        showLoggedInState(newUsername);
+        
+        signupForm.style.display = 'none';
+        loginForm.style.display = 'flex';
     });
 }
 
@@ -95,7 +114,7 @@ function updateFinancialAnalytics() {
     const PLATFORM_FEE_RATE = 0.10;
 
     const totalGrossRevenue = appInventory.reduce((accumulator, item) => {
-        return accumulator + (item.retailPrice * item.stockQuantity);
+        return accumulator + (Number(item.retailPrice) * Number(item.stockQuantity));
     }, 0);
 
     const accumulatedFees = totalGrossRevenue * PLATFORM_FEE_RATE;
@@ -116,7 +135,7 @@ function renderInventoryCatalog(productsList) {
 
     productsList.forEach(item => {
         const cardNode = document.createElement('div');
-        const isOutOfStock = item.stockQuantity <= 0;
+        const isOutOfStock = Number(item.stockQuantity) <= 0;
         
         cardNode.className = 'product-profile-card';
         cardNode.style.border = '1px solid #cbd5e1';
@@ -127,14 +146,14 @@ function renderInventoryCatalog(productsList) {
 
         const KES_TO_USD_RATE = 130.00;
         const liveRates = window.currentExchangeRates;
-        const conversionRate = liveRates && liveRates.KES ? liveRates.KES : KES_TO_USD_RATE;
-        const priceInUSD = (item.retailPrice / conversionRate).toFixed(2);
+        const conversionRate = liveRates && liveRates.KES ? Number(liveRates.KES) : KES_TO_USD_RATE;
+        const priceInUSD = (Number(item.retailPrice) / conversionRate).toFixed(2);
 
         cardNode.innerHTML = `
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                 <span style="font-size: 0.8rem; padding: 0.2rem 0.4rem; background: #e2e8f0; border-radius: 4px;">${item.category}</span>
                 <span style="font-size: 0.8rem; font-weight: bold; color: ${isOutOfStock ? '#ef4444' : '#10b981'};">
-                    ${isOutOfStock ? 'Out of Stock' : `Stock: \${item.stockQuantity}`}
+                    ${isOutOfStock ? 'Out of Stock' : `Stock: ${item.stockQuantity}`}
                 </span>
             </div>
             <h4 style="margin-bottom: 0.25rem;">${item.title}</h4>
@@ -218,29 +237,26 @@ async function handleSaleSimulation(productId) {
 }
 
 async function handleProductDeletion(productId) {
-    const userConfirmed = confirm('Are you sure you want to completely remove this listing?');
-    if (!userConfirmed) return;
-
-    const successfulDeletion = await deleteProductListing(productId);
-    if (successfulDeletion) {
-        appInventory = appInventory.filter(item => item.id !== productId);
-        updateFinancialAnalytics();
-        renderInventoryCatalog(appInventory);
-    } else {
-        alert('Failed to complete item deletion.');
-    }
+const userConfirmed = confirm('Are you sure you want to completely remove this listing?');
+if (!userConfirmed) return;
+const successfulDeletion = await deleteProductListing(productId);
+if (successfulDeletion) {
+appInventory = appInventory.filter(item => item.id !== productId);
+updateFinancialAnalytics();
+renderInventoryCatalog(appInventory);
+} else {
+alert('Failed to complete item deletion.');
+}
 }
 
 if (searchInput) {
-    searchInput.addEventListener('input', (event) => {
-        const searchNormalizedQuery = event.target.value.toLowerCase().trim();
-        
-        const filteredResults = appInventory.filter(item => {
-            return item.title.toLowerCase().includes(searchNormalizedQuery) || 
-                   item.sku.toLowerCase().includes(searchNormalizedQuery);
-        });
-
-        renderInventoryCatalog(filteredResults);
-    });
+searchInput.addEventListener('input', (event) => {
+const searchNormalizedQuery = event.target.value.toLowerCase().trim();
+const filteredResults = appInventory.filter(item => {
+return item.title.toLowerCase().includes(searchNormalizedQuery) ||
+item.sku.toLowerCase().includes(searchNormalizedQuery);
+});
+renderInventoryCatalog(filteredResults);
+});
 }
-
+document.addEventListener('DOMContentLoaded', initializeDashboard);
