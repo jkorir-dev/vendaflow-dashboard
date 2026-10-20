@@ -119,6 +119,14 @@ if (logoutBtn) {
 }
 
 function updateFinancialAnalytics() {
+    const activeUserSession = localStorage.getItem('vendaflow_session_user');
+    if (!activeUserSession) {
+        grossSalesEl.textContent = "KSh 0.00";
+        platformFeesEl.textContent = "KSh 0.00";
+        netPayoutEl.textContent = "KSh 0.00";
+        return;
+    }
+
     const PLATFORM_FEE_RATE = 0.10;
 
     const totalGrossRevenue = appInventory.reduce((accumulator, item) => {
@@ -132,6 +140,8 @@ function updateFinancialAnalytics() {
     platformFeesEl.textContent = `KSh ${accumulatedFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
     netPayoutEl.textContent = `KSh ${computedNetPayout.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 }
+
+
 
 function renderInventoryCatalog(productsList) {
     displayGrid.innerHTML = '';
