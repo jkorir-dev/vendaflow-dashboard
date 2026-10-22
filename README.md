@@ -1,52 +1,44 @@
 VendaFlow Dashboard
 
-This is a simple web dashboard I built for independent social media merchants and online shop sellers to manage their items and track real profits.
+An independent merchant control center designed for social commerce sellers and online shop vendors to manage stock levels and automate profit tracking.
 
-What it does
-Small business owners usually track their stock and money in messy notebooks or chat notes, which makes it easy to lose track of stock and forget about platform fees. 
+Core Features
 
-This project fixes that. It helps sellers:
-- Register and login safely: You have to click "Sign Up" and make an account before you can log in. The system saves user profiles locally.
-- Privacy lock: When you click "Logout", the dashboard completely hides the product list and drops all financial totals to zero so no one else can see your business numbers.
-- Upload product images: Sellers can click the file input to upload pictures of their items. The app turns the image file into a text string so it saves directly inside the database.
-- Interactive stock calendar: Includes a calendar picker so you can record the exact date items are brought into the shop.
-- Automatic SKU codes: Generates a unique warehouse tracking code (SKU) for every item automatically when you hit submit.
-- Live dollar converter: Connects to an external live currency API to display item prices in both KSh and US Dollars ($ USD) based on actual market exchange rates.
-- Sales and fees automation: Has a "Simulate Sale" button that drops the stock count by 1 in real-time. The top cards automatically subtract the mandatory 10% marketplace commission fee so you see your real net profit instantly.
+- User Accounts and Session Gates: Vendors must register a profile via the sign-up panel before logging in. Clicking logout completely hides active catalog assets and zeroes out metrics cards to protect business data privacy.
+- Dual-Mode Database Fallback: The application intelligently detects its environment. It communicates directly with a local backend JSON-Server REST API when running on a local development server, and switches automatically to persistent browser LocalStorage memory when viewed on a live GitHub Pages link to bypass network restrictions.
+- Automatic Financial Computations: Top metric cards keep track of gross store sales, automatically calculate and subtract the mandatory 10% platform marketplace commission fee, and surface the accurate net payout value in real time.
+- Stock Control Actions: Features a one-click sale simulation loop that decreases inventory counts instantly. Items that drop down to zero stock automatically switch to a distinct out-of-stock layout badge status.
+- Warehouse SKU Generation: Programmatically strips text spacing and variables on form submission to engineer an immediate, unique tracking SKU code for every product batch.
+- Live Global Currency Engine: Connects to an external exchange rate API to pull market data and automatically convert local pricing into US Dollars ($ USD) side-by-side with Kenyan Shillings (KSh).
+- Strict Date Entry Boundaries: Integrates an interactive calendar picker with a built-in guard system that prevents merchants from accidentally logging future inventory dates ahead of the current calendar day.
 - Quality ratings: Adds a quick 5-star metric on the product card to help track supplier batch quality scores visually.
-- Filter search bar: You can search for any item instantly by typing a title or SKU code in the live search input.
+- Active Filter Search: A live filter text input field allows vendors to narrow down items by matching product titles or custom tracking codes instantly.
 
-Technologies I Used
-- HTML for the responsive structure of the pages.
-- CSS for the layout and colors (works nicely on mobile phones too).
-- JavaScript for all the math calculations, forms, file handling, star ratings, and search features.
-- JSON Server to act as my backend database API to save the items.
-- Jest for running automated tests to make sure my code works perfectly.
+Technologies Used
 
-My API Endpoints
-- GET /products - To load the product list onto the screen grid.
-- POST /products - To add a new product to the database.
-- PATCH /products/:id - To change the stock count when an item sells.
-- DELETE /products/:id - To completely remove an item from the list.
+- HTML for structural layout and responsive forms.
+- CSS for matrix layout grids and status colors.
+- JavaScript ES6 Modules for data loops, authentication, and calculations.
+- JSON Server for local mock backend persistence.
+- Jest for running automated unit test coverage checks.
 
-When running at `http://localhost:8080`, the app saves products through your local JSON Server at `http://localhost:3000`. `localhost` means the computer running the browser; a GitHub Pages visitor cannot reach the JSON Server on your computer. For shared inventory, this app supports Supabase as its public HTTPS API and database, with Supabase Auth and row-level security so each account only accesses its own inventory. The public anon key is intended for frontend use; never use the Supabase `service_role` key in this app.
+Backend Endpoints
 
-Configure the shared GitHub Pages API
-1. Create a Supabase project and run [supabase-schema.sql](supabase-schema.sql) in its SQL Editor.
-2. In Supabase Authentication settings, enable email/password signups. If email confirmation is enabled, set the site URL and allowed redirect URL to `https://jkorir-dev.github.io/vendaflow-dashboard/`.
-3. In GitHub, open **Settings → Secrets and variables → Actions → Variables** and add `VENDAFLOW_SUPABASE_URL` and `VENDAFLOW_SUPABASE_ANON_KEY` from the Supabase project settings. These are public frontend values; do not use a `service_role` key.
-4. Ensure Pages uses **GitHub Actions**, then push to `main` or manually run the Pages workflow. The deployment injects those variables into `supabase-config.js` in the published site.
-5. Locally, either continue using JSON Server with blank Supabase settings, or add the same project URL and anon key to `supabase-config.js` to use the shared inventory.
+- GET /products: Loads inventory assets onto the dashboard grid display.
+- POST /products: Saves a newly formulated product payload.
+- PATCH /products/:id: Modifies stock values when a sale triggers.
+- DELETE /products/:id: Erases a data row from the active collection.
 
-Without Supabase values, the localhost app uses local JSON Server and GitHub Pages falls back to browser-only storage. Local-only accounts are separate from Supabase accounts; create an account again when switching to Supabase. Supabase inventory is scoped to each authenticated account by database policies.
+Installation and Launch
 
-How to run it on your computer
-1. Clone this folder down to your machine.
-2. Open your terminal inside the project folder and install dependencies:
-   `npm install`
-3. Start the web app and database API together:
-   `npm start`
-4. Open `http://localhost:8080` in your browser. The dashboard loads and saves products through the JSON Server API at `http://localhost:3000`.
-5. Run the dashboard API tests with `npm test`. The separate `js-analyzing-data-modules-syntax-lab` exercise has its own dependencies and tests; run `npm install` and `npm test` from that directory to test the lab.
+- Clone this folder down to your machine.
+- Install project package dependencies by running npm install in your terminal.
+- Launch the local mock database API background engine by running npx json-server --watch db.json --port 3000.
+- Execute the unit test framework to inspect code coverage by running npm test.
+- Open index.html in a web browser window tab to manage your vendor hub!
 
-To publish on GitHub Pages, set the repository's Pages source to **GitHub Actions**. The workflow in `.github/workflows/pages.yml` publishes the front end when changes are pushed to `main` or when started manually from the Actions tab.
+Future Updates
+
+- Safe Cloud User Accounts: Moving user profiles and passwords off the browser storage and into an online secure database server so store accounts can be accessed from any phone or laptop safely.
+- Customer WhatsApp Receipts: Connecting a direct message link hook so that the moment a store owner clicks a sale simulation, a digital receipt link is automatically generated and sent straight to the buyer's WhatsApp chat line.
+- Smart Low Stock Alerts: Writing a simple warning script that monitors how fast products are selling out and sends a notification box to the shop owner telling them exactly when it is time to order more stock from their suppliers.
