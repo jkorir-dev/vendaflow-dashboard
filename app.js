@@ -1,8 +1,16 @@
-import { fetchProducts, createProduct, updateProductStock, deleteProductListing, fetchExchangeRates } from './api.js';
+import {
+    createProduct,
+    deleteProductListing,
+    fetchExchangeRates,
+    fetchProducts,
+    updateProductStock
+} from './api.js';
 
+// State and DOM references
 let appInventory = [];
 
 const entryForm = document.getElementById('product-entry-form');
+const stockingDateInput = document.getElementById('prod-date');
 const searchInput = document.getElementById('catalog-search');
 const displayGrid = document.getElementById('inventory-grid');
 
@@ -19,6 +27,57 @@ const loggedOutView = document.getElementById('auth-logged-out');
 const loggedInView = document.getElementById('auth-logged-in');
 const userDisplay = document.getElementById('user-display-name');
 
+// Date, image, and SKU helpers
+function getLocalDateInputValue(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function isValidNonFutureDate(dateValue) {
+    const dateParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+    if (!dateParts) return false;
+
+    const year = Number(dateParts[1]);
+    const month = Number(dateParts[2]);
+    const day = Number(dateParts[3]);
+    const selectedDate = new Date(0);
+    selectedDate.setUTCHours(0, 0, 0, 0);
+    selectedDate.setUTCFullYear(year, month - 1, day);
+
+    const isRealDate = selectedDate.getUTCFullYear() === year &&
+        selectedDate.getUTCMonth() === month - 1 &&
+        selectedDate.getUTCDate() === day;
+
+    return isRealDate && dateValue <= getLocalDateInputValue();
+}
+
+function convertImageToBase64(files) {
+    if (!files || files.length === 0) return Promise.resolve(null);
+
+    return new Promise((resolve, reject) => {
+        const fileReader = new FileReader();
+        fileReader.readAsDataURL(files[0]);
+        fileReader.onload = () => resolve(fileReader.result);
+        fileReader.onerror = reject;
+    });
+}
+
+function createProductSku(category, title) {
+    const categoryCode = category.substring(0, 3).toUpperCase();
+    const titleCode = title.replace(/\s+/g, '').substring(0, 4).toUpperCase();
+    const uniqueSuffix = Date.now().toString().slice(-4);
+    return `${categoryCode}-${titleCode}-${uniqueSuffix}`;
+}
+
+if (stockingDateInput) {
+    stockingDateInput.max = getLocalDateInputValue();
+    stockingDateInput.addEventListener('input', () => stockingDateInput.setCustomValidity(''));
+    stockingDateInput.addEventListener('change', () => stockingDateInput.setCustomValidity(''));
+}
+
+// Dashboard initialization and authentication
 async function initializeDashboard() {
     checkAuthStatus();
     window.currentExchangeRates = await fetchExchangeRates();
@@ -40,6 +99,7 @@ async function showLoggedInState(username) {
     loggedOutView.style.display = 'none';
     loggedInView.style.display = 'flex';
     userDisplay.textContent = username;
+
     appInventory = await fetchProducts();
     updateFinancialAnalytics();
     renderInventoryCatalog(appInventory);
@@ -48,12 +108,13 @@ async function showLoggedInState(username) {
 function showLoggedOutState() {
     loggedInView.style.display = 'none';
     loggedOutView.style.display = 'flex';
+
     if (loginForm) loginForm.reset();
     if (signupForm) signupForm.reset();
-    
-    grossSalesEl.textContent = "KSh 0.00";
-    platformFeesEl.textContent = "KSh 0.00";
-    netPayoutEl.textContent = "KSh 0.00";
+
+    grossSalesEl.textContent = 'KSh 0.00';
+    platformFeesEl.textContent = 'KSh 0.00';
+    netPayoutEl.textContent = 'KSh 0.00';
     renderInventoryCatalog([]);
 }
 
@@ -62,6 +123,7 @@ if (toggleSignupBtn && cancelSignupBtn) {
         loginForm.style.display = 'none';
         signupForm.style.display = 'flex';
     });
+
     cancelSignupBtn.addEventListener('click', () => {
         signupForm.style.display = 'none';
         loginForm.style.display = 'flex';
@@ -71,27 +133,30 @@ if (toggleSignupBtn && cancelSignupBtn) {
 if (loginForm) {
     loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
+
         const usernameInput = document.getElementById('login-username').value.trim();
         const passwordInput = document.getElementById('login-password').value;
-
         const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
-        const matchingUser = usersDb.find(user => user.username === usernameInput && user.password === passwordInput);
+        const matchingUser = usersDb.find(user =>
+            user.username === usernameInput && user.password === passwordInput
+        );
 
-        if (matchingUser) {
-            localStorage.setItem('vendaflow_session_user', usernameInput);
-            showLoggedInState(usernameInput);
-        } else {
+        if (!matchingUser) {
             alert('Access Denied: Invalid username or password. Please Sign Up first!');
+            return;
         }
+
+        localStorage.setItem('vendaflow_session_user', usernameInput);
+        showLoggedInState(usernameInput);
     });
 }
 
 if (signupForm) {
     signupForm.addEventListener('submit', (event) => {
         event.preventDefault();
+
         const newUsername = document.getElementById('signup-username').value.trim();
         const newPassword = document.getElementById('signup-password').value;
-
         const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
         const userExists = usersDb.some(user => user.username === newUsername);
 
@@ -102,10 +167,9 @@ if (signupForm) {
 
         usersDb.push({ username: newUsername, password: newPassword });
         localStorage.setItem('vendaflow_users', JSON.stringify(usersDb));
-        
         localStorage.setItem('vendaflow_session_user', newUsername);
         showLoggedInState(newUsername);
-        
+
         signupForm.style.display = 'none';
         loginForm.style.display = 'flex';
     });
@@ -118,30 +182,28 @@ if (logoutBtn) {
     });
 }
 
+// Dashboard analytics and product catalog
 function updateFinancialAnalytics() {
     const activeUserSession = localStorage.getItem('vendaflow_session_user');
     if (!activeUserSession) {
-        grossSalesEl.textContent = "KSh 0.00";
-        platformFeesEl.textContent = "KSh 0.00";
-        netPayoutEl.textContent = "KSh 0.00";
+        grossSalesEl.textContent = 'KSh 0.00';
+        platformFeesEl.textContent = 'KSh 0.00';
+        netPayoutEl.textContent = 'KSh 0.00';
         return;
     }
 
-    const PLATFORM_FEE_RATE = 0.10;
-
-    const totalGrossRevenue = appInventory.reduce((accumulator, item) => {
-        return accumulator + (Number(item.retailPrice) * Number(item.stockQuantity));
-    }, 0);
-
-    const accumulatedFees = totalGrossRevenue * PLATFORM_FEE_RATE;
+    const platformFeeRate = 0.10;
+    const totalGrossRevenue = appInventory.reduce((total, item) =>
+        total + Number(item.retailPrice) * Number(item.stockQuantity), 0
+    );
+    const accumulatedFees = totalGrossRevenue * platformFeeRate;
     const computedNetPayout = totalGrossRevenue - accumulatedFees;
+    const currencyFormat = { minimumFractionDigits: 2 };
 
-    grossSalesEl.textContent = `KSh ${totalGrossRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-    platformFeesEl.textContent = `KSh ${accumulatedFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-    netPayoutEl.textContent = `KSh ${computedNetPayout.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    grossSalesEl.textContent = `KSh ${totalGrossRevenue.toLocaleString(undefined, currencyFormat)}`;
+    platformFeesEl.textContent = `KSh ${accumulatedFees.toLocaleString(undefined, currencyFormat)}`;
+    netPayoutEl.textContent = `KSh ${computedNetPayout.toLocaleString(undefined, currencyFormat)}`;
 }
-
-
 
 function renderInventoryCatalog(productsList) {
     displayGrid.innerHTML = '';
@@ -166,20 +228,23 @@ function renderInventoryCatalog(productsList) {
     productsList.forEach(item => {
         const cardNode = document.createElement('div');
         const isOutOfStock = Number(item.stockQuantity) <= 0;
-        
+        const conversionRate = Number(window.currentExchangeRates?.KES) || 130;
+        const priceInUSD = (Number(item.retailPrice) / conversionRate).toFixed(2);
+        const productImageSrc = item.imageUrl || 'https://unsplash.com';
+        const itemRating = Number(item.rating) || 5;
+        let starRatingHtml = '';
+
+        for (let starCount = 1; starCount <= 5; starCount++) {
+            const starColor = starCount <= itemRating ? '#f59e0b' : '#cbd5e1';
+            starRatingHtml += `<span style="color: ${starColor}; font-size: 1.1rem; margin-right: 0.1rem;">★</span>`;
+        }
+
         cardNode.className = 'product-profile-card';
         cardNode.style.border = '1px solid #cbd5e1';
         cardNode.style.padding = '1rem';
         cardNode.style.borderRadius = '6px';
         cardNode.style.background = isOutOfStock ? '#fee2e2' : '#ffffff';
         cardNode.style.marginBottom = '1rem';
-
-        const KES_TO_USD_RATE = 130.00;
-        const liveRates = window.currentExchangeRates;
-        const conversionRate = liveRates && liveRates.KES ? Number(liveRates.KES) : KES_TO_USD_RATE;
-        const priceInUSD = (Number(item.retailPrice) / (conversionRate || 130.00)).toFixed(2);
-        const productImageSrc = item.imageUrl || 'https://unsplash.com';
-
         cardNode.innerHTML = `
             <div style="width: 100%; height: 160px; border-radius: 4px; overflow: hidden; margin-bottom: 0.75rem; background: #f1f5f9;">
                 <img src="${productImageSrc}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;">
@@ -193,6 +258,9 @@ function renderInventoryCatalog(productsList) {
             <h4 style="margin-bottom: 0.25rem;">${item.title}</h4>
             <p style="font-size: 0.75rem; color: #64748b; font-family: monospace; margin-bottom: 0.25rem;">SKU: ${item.sku}</p>
             <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.75rem;">📅 Added: ${item.dateLogged || 'Prior Inventory'}</p>
+            <div style="margin-bottom: 0.75rem; display: flex; align-items: center;">
+                ${starRatingHtml} <small style="color: #64748b; margin-left: 0.4rem; font-size: 0.75rem;">(${itemRating}/5 Quality)</small>
+            </div>
             <div style="font-size: 0.9rem; margin-bottom: 1rem;">
                 <p>Cost: <span style="font-weight: 500;">KSh ${item.wholesaleCost}</span></p>
                 <p>Price: <span style="font-weight: 600; color: #2563eb;">KSh ${item.retailPrice} <small style="color:#64748b;">($${priceInUSD} USD)</small></span></p>
@@ -205,11 +273,11 @@ function renderInventoryCatalog(productsList) {
 
         cardNode.querySelector('.btn-sale-action').addEventListener('click', () => handleSaleSimulation(item.id));
         cardNode.querySelector('.btn-delete-action').addEventListener('click', () => handleProductDeletion(item.id));
-
         displayGrid.appendChild(cardNode);
     });
 }
 
+// Product entry and inventory actions
 if (entryForm) {
     entryForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -219,61 +287,35 @@ if (entryForm) {
         const inputCost = Number(document.getElementById('prod-cost').value);
         const inputRetail = Number(document.getElementById('prod-retail').value);
         const inputStock = Number(document.getElementById('prod-stock').value);
-        const dateInput = document.getElementById('prod-date');
-        const inputDate = dateInput.value;
-        const imageFileInput = document.getElementById('prod-image').files;
+        const inputDate = stockingDateInput.value;
+        const imageFiles = document.getElementById('prod-image').files;
+        const dateIsValid = isValidNonFutureDate(inputDate);
 
-        const today = new Date();
-        const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const dateParts = inputDate.split('-').map(Number);
-        const [year, month, day] = dateParts;
-        const selectedDate = new Date(Date.UTC(year, month - 1, day));
-        const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(inputDate) &&
-            selectedDate.getUTCFullYear() === year &&
-            selectedDate.getUTCMonth() === month - 1 &&
-            selectedDate.getUTCDate() === day;
-
-        dateInput.max = todayString;
-        dateInput.setCustomValidity(
-            isValidDate && inputDate <= todayString
-                ? ''
-                : 'Enter a valid stocking date that is not in the future.'
+        stockingDateInput.setCustomValidity(
+            dateIsValid ? '' : 'Choose a valid stocking date that is today or earlier.'
         );
-        if (!dateInput.reportValidity()) return;
+        if (!stockingDateInput.reportValidity()) return;
 
-        const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-KE', {
+        const formattedDate = new Date(`${inputDate}T12:00:00`).toLocaleDateString('en-KE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         });
 
-        const generatedSku = `${inputCategory.substring(0, 3).toUpperCase()}-${inputTitle.replace(/\s+/g, '').substring(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`;
-
-        const convertBase64 = (file) => {
-            if (!file || file.length === 0) return Promise.resolve(null);
-            return new Promise((resolve, reject) => {
-                const fileReader = new FileReader();
-                fileReader.readAsDataURL(file[0]);
-                fileReader.onload = () => resolve(fileReader.result);
-                fileReader.onerror = (error) => reject(error);
-            });
-        };
-
         try {
-            const base64ImageUrl = await convertBase64(imageFileInput);
-
+            const imageUrl = await convertImageToBase64(imageFiles);
             const newProductPayload = {
                 title: inputTitle,
                 category: inputCategory,
                 wholesaleCost: inputCost,
                 retailPrice: inputRetail,
                 stockQuantity: inputStock,
-                sku: generatedSku,
+                sku: createProductSku(inputCategory, inputTitle),
                 dateLogged: formattedDate,
-                imageUrl: base64ImageUrl
+                imageUrl,
+                rating: Math.floor(Math.random() * 3) + 3
             };
 
-       
             const savedProduct = await createProduct(newProductPayload);
             appInventory.push(savedProduct);
             updateFinancialAnalytics();
@@ -307,23 +349,24 @@ async function handleProductDeletion(productId) {
     if (!userConfirmed) return;
 
     const successfulDeletion = await deleteProductListing(productId);
-    if (successfulDeletion) {
-        appInventory = appInventory.filter(item => item.id !== productId);
-        updateFinancialAnalytics();
-        renderInventoryCatalog(appInventory);
-    } else {
+    if (!successfulDeletion) {
         alert('Failed to complete item deletion.');
+        return;
     }
+
+    appInventory = appInventory.filter(item => item.id !== productId);
+    updateFinancialAnalytics();
+    renderInventoryCatalog(appInventory);
 }
 
+// Catalog search
 if (searchInput) {
     searchInput.addEventListener('input', (event) => {
-        const searchNormalizedQuery = event.target.value.toLowerCase().trim();
-        
-        const filteredResults = appInventory.filter(item => {
-            return item.title.toLowerCase().includes(searchNormalizedQuery) || 
-                   item.sku.toLowerCase().includes(searchNormalizedQuery);
-        });
+        const normalizedQuery = event.target.value.toLowerCase().trim();
+        const filteredResults = appInventory.filter(item =>
+            item.title.toLowerCase().includes(normalizedQuery) ||
+            item.sku.toLowerCase().includes(normalizedQuery)
+        );
 
         renderInventoryCatalog(filteredResults);
     });
