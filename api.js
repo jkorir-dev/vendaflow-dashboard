@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:3000/products';
+const API_ORIGIN = globalThis.VENDAFLOW_API_URL || 'http://localhost:3000';
+const BASE_URL = `${API_ORIGIN.replace(/\/$/, '')}/products`;
 const CURRENCY_API_URL = 'https://er-api.com';
 
 export async function fetchProducts() {

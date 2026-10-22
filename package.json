@@ -5,7 +5,10 @@
   "main": "app.js",
   "type": "module",
   "scripts": {
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "server:api": "json-server --watch db.json --port 3000",
+    "server:web": "http-server . -p 8080 -c-1",
+    "start": "concurrently -k -n api,web \"npm:server:api\" \"npm:server:web\""
   },
   "keywords": [],
   "author": "Japhet Korir",
@@ -14,6 +17,9 @@
     "@babel/core": "^7.0.0",
     "@babel/preset-env": "^7.0.0",
     "babel-jest": "^29.0.0",
-    "jest": "^29.0.0"
+    "concurrently": "^10.0.6",
+    "http-server": "^14.1.1",
+    "jest": "^29.0.0",
+    "json-server": "^0.17.4"
   }
 }

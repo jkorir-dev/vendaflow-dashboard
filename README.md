@@ -31,10 +31,11 @@ This project fixes that. It helps sellers:
 
 ## How to run it on your computer
 1. Clone this folder down to your machine.
-2. Open your terminal inside the project folder and run this to install dependencies:
-   npm install
-3. Start the background database server by running:
-   npx json-server --watch db.json --port 3000
-4. Run my automated test checks by running:
-   npm test
-5. Open index.html in your browser to use the application!
+2. Open your terminal inside the project folder and install dependencies:
+   `npm install`
+3. Start the web app and database API together:
+   `npm start`
+4. Open `http://localhost:8080` in your browser. The dashboard loads and saves products through the JSON Server API at `http://localhost:3000`.
+5. Run the dashboard API tests with `npx jest api.test.js --runInBand` (or run the full suite with `npm test`).
+
+To use a different API host, define `window.VENDAFLOW_API_URL` before loading `app.js`; it should be the API origin without `/products` (for example, `https://api.example.com`).
