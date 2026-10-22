@@ -1,8 +1,8 @@
-# VendaFlow Dashboard
+VendaFlow Dashboard
 
 This is a simple web dashboard I built for independent social media merchants and online shop sellers to manage their items and track real profits.
 
-## What it does
+What it does
 Small business owners usually track their stock and money in messy notebooks or chat notes, which makes it easy to lose track of stock and forget about platform fees. 
 
 This project fixes that. It helps sellers:
@@ -16,20 +16,20 @@ This project fixes that. It helps sellers:
 - Quality ratings: Adds a quick 5-star metric on the product card to help track supplier batch quality scores visually.
 - Filter search bar: You can search for any item instantly by typing a title or SKU code in the live search input.
 
-## Technologies I Used
+Technologies I Used
 - HTML for the responsive structure of the pages.
 - CSS for the layout and colors (works nicely on mobile phones too).
 - JavaScript for all the math calculations, forms, file handling, star ratings, and search features.
 - JSON Server to act as my backend database API to save the items.
 - Jest for running automated tests to make sure my code works perfectly.
 
-## My API Endpoints
+My API Endpoints
 - GET /products - To load the product list onto the screen grid.
 - POST /products - To add a new product to the database.
 - PATCH /products/:id - To change the stock count when an item sells.
 - DELETE /products/:id - To completely remove an item from the list.
 
-## How to run it on your computer
+How to run it on your computer
 1. Clone this folder down to your machine.
 2. Open your terminal inside the project folder and install dependencies:
    `npm install`
