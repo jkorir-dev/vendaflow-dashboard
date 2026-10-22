@@ -219,10 +219,29 @@ if (entryForm) {
         const inputCost = Number(document.getElementById('prod-cost').value);
         const inputRetail = Number(document.getElementById('prod-retail').value);
         const inputStock = Number(document.getElementById('prod-stock').value);
-        const inputDate = document.getElementById('prod-date').value;
+        const dateInput = document.getElementById('prod-date');
+        const inputDate = dateInput.value;
         const imageFileInput = document.getElementById('prod-image').files;
 
-        const formattedDate = new Date(inputDate).toLocaleDateString('en-KE', {
+        const today = new Date();
+        const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const dateParts = inputDate.split('-').map(Number);
+        const [year, month, day] = dateParts;
+        const selectedDate = new Date(Date.UTC(year, month - 1, day));
+        const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(inputDate) &&
+            selectedDate.getUTCFullYear() === year &&
+            selectedDate.getUTCMonth() === month - 1 &&
+            selectedDate.getUTCDate() === day;
+
+        dateInput.max = todayString;
+        dateInput.setCustomValidity(
+            isValidDate && inputDate <= todayString
+                ? ''
+                : 'Enter a valid stocking date that is not in the future.'
+        );
+        if (!dateInput.reportValidity()) return;
+
+        const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-KE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
