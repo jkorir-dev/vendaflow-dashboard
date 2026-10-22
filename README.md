@@ -8,6 +8,7 @@ Core Features
 - Dual-Mode Database Fallback: The application intelligently detects its environment. It communicates directly with a local backend JSON-Server REST API when running on a local development server, and switches automatically to persistent browser LocalStorage memory when viewed on a live GitHub Pages link to bypass network restrictions.
 - Automatic Financial Computations: Top metric cards keep track of gross store sales, automatically calculate and subtract the mandatory 10% platform marketplace commission fee, and surface the accurate net payout value in real time.
 - Stock Control Actions: Features a one-click sale simulation loop that decreases inventory counts instantly. Items that drop down to zero stock automatically switch to a distinct out-of-stock layout badge status.
+- Customer WhatsApp Receipts: After a simulated sale, the merchant can enter the buyer's phone number. The app displays a clickable WhatsApp receipt link on the page; the merchant reviews it and taps Send in WhatsApp. This avoids popup blocking, and messages are not sent automatically.
 - Warehouse SKU Generation: Programmatically strips text spacing and variables on form submission to engineer an immediate, unique tracking SKU code for every product batch.
 - Live Global Currency Engine: Connects to an external exchange rate API to pull market data and automatically convert local pricing into US Dollars ($ USD) side-by-side with Kenyan Shillings (KSh).
 - Strict Date Entry Boundaries: Integrates an interactive calendar picker with a built-in guard system that prevents merchants from accidentally logging future inventory dates ahead of the current calendar day.
@@ -40,5 +41,5 @@ Installation and Launch
 Future Updates
 
 - Safe Cloud User Accounts: Moving user profiles and passwords off the browser storage and into an online secure database server so store accounts can be accessed from any phone or laptop safely.
-- Customer WhatsApp Receipts: Connecting a direct message link hook so that the moment a store owner clicks a sale simulation, a digital receipt link is automatically generated and sent straight to the buyer's WhatsApp chat line.
+
 - Smart Low Stock Alerts: Writing a simple warning script that monitors how fast products are selling out and sends a notification box to the shop owner telling them exactly when it is time to order more stock from their suppliers.

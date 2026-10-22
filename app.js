@@ -18,6 +18,7 @@ const entryForm = document.getElementById('product-entry-form');
 const stockingDateInput = document.getElementById('prod-date');
 const searchInput = document.getElementById('catalog-search');
 const displayGrid = document.getElementById('inventory-grid');
+const whatsappReceiptNotice = document.getElementById('whatsapp-receipt-notice');
 
 const grossSalesEl = document.getElementById('metric-gross');
 const platformFeesEl = document.getElementById('metric-fees');
@@ -89,6 +90,48 @@ function createProductSku(category, title) {
     const titleCode = title.replace(/\s+/g, '').substring(0, 4).toUpperCase();
     const uniqueSuffix = Date.now().toString().slice(-4);
     return `${categoryCode}-${titleCode}-${uniqueSuffix}`;
+}
+
+function normalizeWhatsAppNumber(phoneNumber) {
+    let digits = phoneNumber.replace(/\D/g, '');
+    if (digits.startsWith('0')) digits = `254${digits.slice(1)}`;
+    if (digits.length < 8 || digits.length > 15) return null;
+    return digits;
+}
+
+function createWhatsAppReceiptUrl(phoneNumber, product) {
+    const receiptNumber = `VF-${Date.now().toString(36).toUpperCase()}`;
+    const saleDate = new Intl.DateTimeFormat('en-KE', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    }).format(new Date());
+    const message = [
+        'VendaFlow digital receipt',
+        `Receipt: ${receiptNumber}`,
+        `Item: ${product.title}`,
+        `SKU: ${product.sku}`,
+        'Quantity: 1',
+        `Unit price: KSh ${Number(product.retailPrice).toLocaleString('en-KE')}`,
+        `Date: ${saleDate}`,
+        'Thank you for shopping with us!'
+    ].join('\n');
+
+    return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+}
+
+function showWhatsAppReceiptLink(receiptUrl) {
+    if (!whatsappReceiptNotice) return;
+
+    whatsappReceiptNotice.replaceChildren();
+    whatsappReceiptNotice.hidden = false;
+    whatsappReceiptNotice.append('Sale recorded. Open WhatsApp to review and send the receipt: ');
+
+    const link = document.createElement('a');
+    link.href = receiptUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Open WhatsApp receipt';
+    whatsappReceiptNotice.append(link);
 }
 
 function hasActiveUserSession() {
@@ -421,6 +464,25 @@ async function handleSaleSimulation(productId) {
     const targetItem = appInventory.find(item => item.id === productId);
     if (!targetItem || targetItem.stockQuantity <= 0) return;
 
+    if (whatsappReceiptNotice) {
+        whatsappReceiptNotice.hidden = true;
+        whatsappReceiptNotice.replaceChildren();
+    }
+
+    const buyerPhoneInput = prompt(
+        'Enter the buyer’s WhatsApp number (Kenya format, e.g. 0712345678). Leave blank to skip receipt.'
+    );
+    let receiptUrl = null;
+
+    if (buyerPhoneInput?.trim()) {
+        const normalizedPhone = normalizeWhatsAppNumber(buyerPhoneInput.trim());
+        if (!normalizedPhone) {
+            alert('That WhatsApp number does not look valid. The sale will continue without a receipt.');
+        } else {
+            receiptUrl = createWhatsAppReceiptUrl(normalizedPhone, targetItem);
+        }
+    }
+
     const originalQuantity = targetItem.stockQuantity;
     targetItem.stockQuantity -= 1;
 
@@ -428,6 +490,10 @@ async function handleSaleSimulation(productId) {
         await updateProductStock(productId, { stockQuantity: targetItem.stockQuantity });
         updateFinancialAnalytics();
         renderInventoryCatalog(appInventory);
+
+        if (receiptUrl) {
+            showWhatsAppReceiptLink(receiptUrl);
+        }
     } catch (error) {
         targetItem.stockQuantity = originalQuantity;
         alert('Failed to process sale mutation.');
