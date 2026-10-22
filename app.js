@@ -20,6 +20,14 @@ const searchInput = document.getElementById('catalog-search');
 const displayGrid = document.getElementById('inventory-grid');
 const lowStockAlerts = document.getElementById('low-stock-alerts');
 const whatsappReceiptNotice = document.getElementById('whatsapp-receipt-notice');
+const socialProductSelect = document.getElementById('social-product-select');
+const socialPromoPanel = document.getElementById('social-promo-panel');
+const socialProductImage = document.getElementById('social-product-image');
+const socialImagePlaceholder = document.getElementById('social-image-placeholder');
+const socialPromoCaption = document.getElementById('social-promo-caption');
+const copySocialCaptionButton = document.getElementById('btn-copy-social-caption');
+const shareWhatsAppLink = document.getElementById('btn-share-whatsapp');
+const socialPromoStatus = document.getElementById('social-promo-status');
 
 const grossSalesEl = document.getElementById('metric-gross');
 const platformFeesEl = document.getElementById('metric-fees');
@@ -94,6 +102,97 @@ function createProductSku(category, title) {
     const titleCode = title.replace(/\s+/g, '').substring(0, 4).toUpperCase();
     const uniqueSuffix = Date.now().toString().slice(-4);
     return `${categoryCode}-${titleCode}-${uniqueSuffix}`;
+}
+
+function createCategoryPlaceholder(item) {
+    const palette = {
+        Fashion: ['#7c3aed', '#f5f3ff'],
+        Electronics: ['#0369a1', '#f0f9ff'],
+        Home: ['#15803d', '#f0fdf4']
+    };
+    const [foreground, background] = palette[item.category] || ['#334155', '#f1f5f9'];
+    const safeText = String(item.title || item.category || 'Product')
+        .replace(/[&<>"']/g, character => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&apos;'
+        })[character]);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="${background}"/><circle cx="300" cy="220" r="112" fill="${foreground}" opacity=".12"/><text x="300" y="250" text-anchor="middle" font-size="100" fill="${foreground}">●</text><text x="300" y="410" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="700" fill="${foreground}">${safeText}</text><text x="300" y="460" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="${foreground}">${String(item.category || 'Product')}</text></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function createSocialCaption(item) {
+    const availableStock = Number(item.stockQuantity) || 0;
+    const productUrl = window.location.href.split('#')[0];
+    return [
+        `✨ ${item.title} ✨`,
+        `${item.category} | KSh ${Number(item.retailPrice).toLocaleString('en-KE')}`,
+        `Available now: ${availableStock} in stock`,
+        `SKU: ${item.sku}`,
+        'Message us to order!',
+        productUrl,
+        '#ShopLocal #VendaFlow'
+    ].join('\n');
+}
+
+function updateSocialPromoComposer() {
+    if (!socialProductSelect) return;
+
+    if (socialPromoPanel) socialPromoPanel.hidden = !hasActiveUserSession();
+    if (!hasActiveUserSession()) {
+        socialProductSelect.replaceChildren(new Option('Select a product...', ''));
+        socialProductImage.hidden = true;
+        socialImagePlaceholder.hidden = false;
+        socialImagePlaceholder.textContent = 'Log in to create a promotion.';
+        socialPromoCaption.value = '';
+        socialPromoCaption.disabled = true;
+        copySocialCaptionButton.disabled = true;
+        shareWhatsAppLink.setAttribute('aria-disabled', 'true');
+        shareWhatsAppLink.removeAttribute('href');
+        return;
+    }
+
+    const previousId = socialProductSelect.value;
+    socialProductSelect.replaceChildren(new Option('Select a product...', ''));
+    appInventory.forEach(item => {
+        const option = new Option(`${item.title} — KSh ${Number(item.retailPrice).toLocaleString('en-KE')}`, String(item.id));
+        socialProductSelect.add(option);
+    });
+
+    const selectedItem = appInventory.find(item => String(item.id) === previousId) || appInventory[0];
+    if (!selectedItem) {
+        socialProductSelect.value = '';
+        socialProductImage.hidden = true;
+        socialImagePlaceholder.hidden = false;
+        socialImagePlaceholder.textContent = 'Add inventory items to create a promotion.';
+        socialPromoCaption.value = '';
+        socialPromoCaption.disabled = true;
+        copySocialCaptionButton.disabled = true;
+        shareWhatsAppLink.setAttribute('aria-disabled', 'true');
+        shareWhatsAppLink.removeAttribute('href');
+        return;
+    }
+
+    socialProductSelect.value = String(selectedItem.id);
+    socialImagePlaceholder.hidden = true;
+    socialProductImage.hidden = false;
+    socialProductImage.src = selectedItem.imageUrl || createCategoryPlaceholder(selectedItem);
+    socialProductImage.alt = `${selectedItem.title} product image`;
+    socialPromoCaption.value = createSocialCaption(selectedItem);
+    socialPromoCaption.disabled = false;
+    copySocialCaptionButton.disabled = false;
+    updateWhatsAppShareLink();
+    if (socialPromoStatus) socialPromoStatus.textContent = selectedItem.imageUrl
+        ? 'Loaded the saved image for this product.'
+        : `No saved photo for this item; showing an automatic ${selectedItem.category} placeholder.`;
+}
+
+function updateWhatsAppShareLink() {
+    if (!shareWhatsAppLink || !socialPromoCaption.value.trim()) return;
+    shareWhatsAppLink.href = `https://wa.me/?text=${encodeURIComponent(socialPromoCaption.value)}`;
+    shareWhatsAppLink.setAttribute('aria-disabled', 'false');
 }
 
 function normalizeWhatsAppNumber(phoneNumber) {
@@ -424,6 +523,7 @@ function renderInventoryCatalog(productsList) {
     displayGrid.innerHTML = '';
 
     if (!hasActiveUserSession()) {
+        updateSocialPromoComposer();
         if (lowStockAlerts) {
             lowStockAlerts.hidden = true;
             lowStockAlerts.replaceChildren();
@@ -439,6 +539,7 @@ function renderInventoryCatalog(productsList) {
     }
 
     renderLowStockAlerts(appInventory);
+    updateSocialPromoComposer();
 
     if (productsList.length === 0) {
         displayGrid.innerHTML = '<p class="empty-state">No matching inventory items found.</p>';
@@ -450,7 +551,7 @@ function renderInventoryCatalog(productsList) {
         const isOutOfStock = Number(item.stockQuantity) <= 0;
         const conversionRate = Number(window.currentExchangeRates?.KES) || 130;
         const priceInUSD = (Number(item.retailPrice) / conversionRate).toFixed(2);
-        const productImageSrc = item.imageUrl || 'https://unsplash.com';
+        const productImageSrc = item.imageUrl || createCategoryPlaceholder(item);
         const itemRating = Number(item.rating) || 5;
         let starRatingHtml = '';
 
@@ -615,6 +716,26 @@ if (searchInput) {
         );
 
         renderInventoryCatalog(filteredResults);
+    });
+}
+
+if (socialProductSelect) {
+    socialProductSelect.addEventListener('change', updateSocialPromoComposer);
+}
+
+if (socialPromoCaption) {
+    socialPromoCaption.addEventListener('input', updateWhatsAppShareLink);
+}
+
+if (copySocialCaptionButton) {
+    copySocialCaptionButton.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(socialPromoCaption.value);
+            socialPromoStatus.textContent = 'Caption copied. Add the product photo when publishing your post.';
+        } catch (error) {
+            socialPromoCaption.select();
+            socialPromoStatus.textContent = 'Select and copy the caption, then attach the product image when publishing.';
+        }
     });
 }
 
