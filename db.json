@@ -14,7 +14,7 @@
       "category": "Electronics",
       "wholesaleCost": 35000,
       "retailPrice": 45000,
-      "stockQuantity": 2,
+      "stockQuantity": 1,
       "sku": "ELE-FRID-2743",
       "id": "J6U0YVnqjSs"
     },
@@ -23,7 +23,7 @@
       "category": "Fashion",
       "wholesaleCost": 600,
       "retailPrice": 1200,
-      "stockQuantity": 9,
+      "stockQuantity": 7,
       "sku": "FAS-SLIM-4968",
       "id": "8wL8RPtuR4I"
     },
@@ -56,6 +56,50 @@
       "sku": "ELE-FRID-8128",
       "dateLogged": "20 Oct 2026, 11:40",
       "id": "ZEg4K-sZrv0"
+    },
+    {
+      "title": "slim fit jacket",
+      "category": "Fashion",
+      "wholesaleCost": 400,
+      "retailPrice": 1200,
+      "stockQuantity": 10,
+      "sku": "FAS-SLIM-0427",
+      "dateLogged": "21 Oct 2026",
+      "imageUrl": null,
+      "id": "aa1YX1E"
+    },
+    {
+      "title": "slim fitjacket",
+      "category": "Fashion",
+      "wholesaleCost": 400,
+      "retailPrice": 1200,
+      "stockQuantity": 10,
+      "sku": "FAS-SLIM-6384",
+      "dateLogged": "29 Oct 2026",
+      "imageUrl": null,
+      "id": "asCUk8x"
+    },
+    {
+      "title": "slim fitjacket",
+      "category": "Fashion",
+      "wholesaleCost": 400,
+      "retailPrice": 1200,
+      "stockQuantity": 10,
+      "sku": "FAS-SLIM-2923",
+      "dateLogged": "30 Oct 2026",
+      "imageUrl": null,
+      "id": "M8_SIWA"
+    },
+    {
+      "title": "slim fitjacket",
+      "category": "Fashion",
+      "wholesaleCost": 600,
+      "retailPrice": 1600,
+      "stockQuantity": 10,
+      "sku": "FAS-SLIM-3292",
+      "dateLogged": "15 Oct 2026",
+      "imageUrl": null,
+      "id": "I-xovUb"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

@@ -3,6 +3,11 @@ import {
     deleteProductListing,
     fetchExchangeRates,
     fetchProducts,
+    getSupabaseSession,
+    isSupabaseConfigured,
+    signInUser,
+    signOutUser,
+    signUpUser,
     updateProductStock
 } from './api.js';
 
@@ -26,6 +31,13 @@ const logoutBtn = document.getElementById('btn-logout');
 const loggedOutView = document.getElementById('auth-logged-out');
 const loggedInView = document.getElementById('auth-logged-in');
 const userDisplay = document.getElementById('user-display-name');
+const signupEmailInput = document.getElementById('signup-email');
+
+if (isSupabaseConfigured && signupEmailInput) {
+    signupEmailInput.style.display = '';
+    signupEmailInput.required = true;
+    document.getElementById('login-username').placeholder = 'Email';
+}
 
 // Date, image, and SKU helpers
 function getLocalDateInputValue(date = new Date()) {
@@ -71,6 +83,13 @@ function createProductSku(category, title) {
     return `${categoryCode}-${titleCode}-${uniqueSuffix}`;
 }
 
+function hasActiveUserSession() {
+    const sessionKey = isSupabaseConfigured
+        ? 'vendaflow_supabase_session'
+        : 'vendaflow_session_user';
+    return Boolean(localStorage.getItem(sessionKey));
+}
+
 if (stockingDateInput) {
     stockingDateInput.max = getLocalDateInputValue();
     stockingDateInput.addEventListener('input', () => stockingDateInput.setCustomValidity(''));
@@ -79,19 +98,35 @@ if (stockingDateInput) {
 
 // Dashboard initialization and authentication
 async function initializeDashboard() {
-    checkAuthStatus();
     window.currentExchangeRates = await fetchExchangeRates();
-    appInventory = await fetchProducts();
-    updateFinancialAnalytics();
-    renderInventoryCatalog(appInventory);
+    const isLoggedIn = await checkAuthStatus();
+    if (!isLoggedIn) {
+        appInventory = await fetchProducts();
+        updateFinancialAnalytics();
+        renderInventoryCatalog(appInventory);
+    }
 }
 
-function checkAuthStatus() {
+async function checkAuthStatus() {
+    if (isSupabaseConfigured) {
+        const session = await getSupabaseSession();
+        if (!session?.user) {
+            showLoggedOutState();
+            return false;
+        }
+
+        const username = session.user.user_metadata?.username || session.user.email;
+        await showLoggedInState(username);
+        return true;
+    }
+
     const cachedUser = localStorage.getItem('vendaflow_session_user');
     if (cachedUser) {
-        showLoggedInState(cachedUser);
+        await showLoggedInState(cachedUser);
+        return true;
     } else {
         showLoggedOutState();
+        return false;
     }
 }
 
@@ -134,11 +169,19 @@ if (loginForm) {
     loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
 
-        const usernameInput = document.getElementById('login-username').value.trim();
+        const loginInput = document.getElementById('login-username').value.trim();
         const passwordInput = document.getElementById('login-password').value;
+
+        if (isSupabaseConfigured) {
+            signInUser(loginInput, passwordInput)
+                .then(session => showLoggedInState(session.user.user_metadata?.username || session.user.email))
+                .catch(error => alert(`Sign in failed: ${error.message}`));
+            return;
+        }
+
         const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
         const matchingUser = usersDb.find(user =>
-            user.username === usernameInput && user.password === passwordInput
+            user.username === loginInput && user.password === passwordInput
         );
 
         if (!matchingUser) {
@@ -146,8 +189,8 @@ if (loginForm) {
             return;
         }
 
-        localStorage.setItem('vendaflow_session_user', usernameInput);
-        showLoggedInState(usernameInput);
+        localStorage.setItem('vendaflow_session_user', loginInput);
+        showLoggedInState(loginInput);
     });
 }
 
@@ -157,6 +200,27 @@ if (signupForm) {
 
         const newUsername = document.getElementById('signup-username').value.trim();
         const newPassword = document.getElementById('signup-password').value;
+
+        if (isSupabaseConfigured) {
+            const email = signupEmailInput.value.trim();
+            signUpUser(email, newPassword, newUsername)
+                .then(result => {
+                    if (!result.access_token) {
+                        alert('Account created. Check your email to confirm it, then sign in.');
+                        signupForm.reset();
+                        signupForm.style.display = 'none';
+                        loginForm.style.display = 'flex';
+                        return;
+                    }
+
+                    showLoggedInState(result.user.user_metadata?.username || result.user.email);
+                    signupForm.style.display = 'none';
+                    loginForm.style.display = 'flex';
+                })
+                .catch(error => alert(`Sign up failed: ${error.message}`));
+            return;
+        }
+
         const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
         const userExists = usersDb.some(user => user.username === newUsername);
 
@@ -177,15 +241,20 @@ if (signupForm) {
 
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('vendaflow_session_user');
-        showLoggedOutState();
+        if (isSupabaseConfigured) {
+            signOutUser()
+                .catch(error => console.error('Sign out failed:', error))
+                .finally(showLoggedOutState);
+        } else {
+            localStorage.removeItem('vendaflow_session_user');
+            showLoggedOutState();
+        }
     });
 }
 
 // Dashboard analytics and product catalog
 function updateFinancialAnalytics() {
-    const activeUserSession = localStorage.getItem('vendaflow_session_user');
-    if (!activeUserSession) {
+    if (!hasActiveUserSession()) {
         grossSalesEl.textContent = 'KSh 0.00';
         platformFeesEl.textContent = 'KSh 0.00';
         netPayoutEl.textContent = 'KSh 0.00';
@@ -208,8 +277,7 @@ function updateFinancialAnalytics() {
 function renderInventoryCatalog(productsList) {
     displayGrid.innerHTML = '';
 
-    const activeUserSession = localStorage.getItem('vendaflow_session_user');
-    if (!activeUserSession) {
+    if (!hasActiveUserSession()) {
         displayGrid.innerHTML = `
             <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f1f5f9;">
                 <span style="font-size: 3rem;">🔒</span>
@@ -322,7 +390,9 @@ if (entryForm) {
             renderInventoryCatalog(appInventory);
             entryForm.reset();
         } catch (error) {
-            alert('Failed to log new inventory item.');
+            console.error('Failed to log new inventory item:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            alert(`Failed to log new inventory item: ${errorMessage}`);
         }
     });
 }

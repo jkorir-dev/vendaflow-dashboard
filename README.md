@@ -29,6 +29,17 @@ My API Endpoints
 - PATCH /products/:id - To change the stock count when an item sells.
 - DELETE /products/:id - To completely remove an item from the list.
 
+When running at `http://localhost:8080`, the app saves products through your local JSON Server at `http://localhost:3000`. `localhost` means the computer running the browser; a GitHub Pages visitor cannot reach the JSON Server on your computer. For shared inventory, this app supports Supabase as its public HTTPS API and database, with Supabase Auth and row-level security so each account only accesses its own inventory. The public anon key is intended for frontend use; never use the Supabase `service_role` key in this app.
+
+Configure the shared GitHub Pages API
+1. Create a Supabase project and run [supabase-schema.sql](supabase-schema.sql) in its SQL Editor.
+2. In Supabase Authentication settings, enable email/password signups. If email confirmation is enabled, set the site URL and allowed redirect URL to `https://jkorir-dev.github.io/vendaflow-dashboard/`.
+3. In GitHub, open **Settings → Secrets and variables → Actions → Variables** and add `VENDAFLOW_SUPABASE_URL` and `VENDAFLOW_SUPABASE_ANON_KEY` from the Supabase project settings. These are public frontend values; do not use a `service_role` key.
+4. Ensure Pages uses **GitHub Actions**, then push to `main` or manually run the Pages workflow. The deployment injects those variables into `supabase-config.js` in the published site.
+5. Locally, either continue using JSON Server with blank Supabase settings, or add the same project URL and anon key to `supabase-config.js` to use the shared inventory.
+
+Without Supabase values, the localhost app uses local JSON Server and GitHub Pages falls back to browser-only storage. Local-only accounts are separate from Supabase accounts; create an account again when switching to Supabase. Supabase inventory is scoped to each authenticated account by database policies.
+
 How to run it on your computer
 1. Clone this folder down to your machine.
 2. Open your terminal inside the project folder and install dependencies:
@@ -36,6 +47,6 @@ How to run it on your computer
 3. Start the web app and database API together:
    `npm start`
 4. Open `http://localhost:8080` in your browser. The dashboard loads and saves products through the JSON Server API at `http://localhost:3000`.
-5. Run the dashboard API tests with `npx jest api.test.js --runInBand` (or run the full suite with `npm test`).
+5. Run the dashboard API tests with `npm test`. The separate `js-analyzing-data-modules-syntax-lab` exercise has its own dependencies and tests; run `npm install` and `npm test` from that directory to test the lab.
 
-To use a different API host, define `window.VENDAFLOW_API_URL` before loading `app.js`; it should be the API origin without `/products` (for example, `https://api.example.com`).
+To publish on GitHub Pages, set the repository's Pages source to **GitHub Actions**. The workflow in `.github/workflows/pages.yml` publishes the front end when changes are pushed to `main` or when started manually from the Actions tab.

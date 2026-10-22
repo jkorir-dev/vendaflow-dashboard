@@ -25,6 +25,7 @@
                 
                 <form id="inline-signup-form" class="inline-auth-form" style="display: none;">
                     <input type="text" id="signup-username" placeholder="Choose Username" required>
+                    <input type="email" id="signup-email" placeholder="Email address" style="display: none;" autocomplete="email">
                     <input type="password" id="signup-password" placeholder="Create Password" required>
                     <button type="submit" class="btn-auth-action btn-success-style">Register</button>
                     <button type="button" id="btn-cancel-signup" class="btn-auth-action btn-logout-style">Cancel</button>
@@ -117,6 +118,7 @@
         </div>
     </main>
 
+    <script src="supabase-config.js"></script>
     <script type="module" src="app.js"></script>
 </body>
 </html>
