@@ -65,6 +65,14 @@ function isValidNonFutureDate(dateValue) {
     return isRealDate && dateValue <= getLocalDateInputValue();
 }
 
+function syncStockingDateLimit() {
+    if (!stockingDateInput) return;
+    stockingDateInput.max = getLocalDateInputValue();
+    if (stockingDateInput.value && !isValidNonFutureDate(stockingDateInput.value)) {
+        stockingDateInput.value = '';
+    }
+}
+
 function convertImageToBase64(files) {
     if (!files || files.length === 0) return Promise.resolve(null);
 
@@ -91,13 +99,21 @@ function hasActiveUserSession() {
 }
 
 if (stockingDateInput) {
-    stockingDateInput.max = getLocalDateInputValue();
-    stockingDateInput.addEventListener('input', () => stockingDateInput.setCustomValidity(''));
-    stockingDateInput.addEventListener('change', () => stockingDateInput.setCustomValidity(''));
+    syncStockingDateLimit();
+    stockingDateInput.addEventListener('focus', syncStockingDateLimit);
+    stockingDateInput.addEventListener('input', () => {
+        syncStockingDateLimit();
+        stockingDateInput.setCustomValidity('');
+    });
+    stockingDateInput.addEventListener('change', () => {
+        syncStockingDateLimit();
+        stockingDateInput.setCustomValidity('');
+    });
 }
 
 // Dashboard initialization and authentication
 async function initializeDashboard() {
+    syncStockingDateLimit();
     window.currentExchangeRates = await fetchExchangeRates();
     const isLoggedIn = await checkAuthStatus();
     if (!isLoggedIn) {
@@ -166,16 +182,19 @@ if (toggleSignupBtn && cancelSignupBtn) {
 }
 
 if (loginForm) {
-    loginForm.addEventListener('submit', (event) => {
+    loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         const loginInput = document.getElementById('login-username').value.trim();
         const passwordInput = document.getElementById('login-password').value;
 
         if (isSupabaseConfigured) {
-            signInUser(loginInput, passwordInput)
-                .then(session => showLoggedInState(session.user.user_metadata?.username || session.user.email))
-                .catch(error => alert(`Sign in failed: ${error.message}`));
+            try {
+                const session = await signInUser(loginInput, passwordInput);
+                await showLoggedInState(session.user.user_metadata?.username || session.user.email);
+            } catch (error) {
+                alert(`Sign in failed: ${error.message}`);
+            }
             return;
         }
 
@@ -195,7 +214,7 @@ if (loginForm) {
 }
 
 if (signupForm) {
-    signupForm.addEventListener('submit', (event) => {
+    signupForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         const newUsername = document.getElementById('signup-username').value.trim();
@@ -203,21 +222,22 @@ if (signupForm) {
 
         if (isSupabaseConfigured) {
             const email = signupEmailInput.value.trim();
-            signUpUser(email, newPassword, newUsername)
-                .then(result => {
-                    if (!result.access_token) {
-                        alert('Account created. Check your email to confirm it, then sign in.');
-                        signupForm.reset();
-                        signupForm.style.display = 'none';
-                        loginForm.style.display = 'flex';
-                        return;
-                    }
-
-                    showLoggedInState(result.user.user_metadata?.username || result.user.email);
+            try {
+                const result = await signUpUser(email, newPassword, newUsername);
+                if (!result.access_token) {
+                    alert('Account created. Check your email to confirm it, then sign in.');
+                    signupForm.reset();
                     signupForm.style.display = 'none';
                     loginForm.style.display = 'flex';
-                })
-                .catch(error => alert(`Sign up failed: ${error.message}`));
+                    return;
+                }
+
+                await showLoggedInState(result.user.user_metadata?.username || result.user.email);
+                signupForm.style.display = 'none';
+                loginForm.style.display = 'flex';
+            } catch (error) {
+                alert(`Sign up failed: ${error.message}`);
+            }
             return;
         }
 
