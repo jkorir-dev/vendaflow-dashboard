@@ -6,8 +6,9 @@ Core Features
 
 - User Accounts and Session Gates: Vendors must register a profile via the sign-up panel before logging in. Clicking logout completely hides active catalog assets and zeroes out metrics cards to protect business data privacy.
 - Dual-Mode Database Fallback: The application intelligently detects its environment. It communicates directly with a local backend JSON-Server REST API when running on a local development server, and switches automatically to persistent browser LocalStorage memory when viewed on a live GitHub Pages link to bypass network restrictions.
-- Automatic Financial Computations: Top metric cards keep track of gross store sales, automatically calculate and subtract the mandatory 10% platform marketplace commission fee, and surface the accurate net payout value in real time.
+- Automatic Financial Computations: Top metric cards keep track of gross store sales, automatically calculate and subtract the 3% platform marketplace fee, and surface the accurate net payout value in real time.
 - Stock Control Actions: Features a one-click sale simulation loop that decreases inventory counts instantly. Items that drop down to zero stock automatically switch to a distinct out-of-stock layout badge status.
+- Smart Low Stock Alerts: Shows a restock warning when an item's quantity reaches three or fewer, or when its rolling seven-day sales rate projects it will run out within seven days. Forecasts use sales recorded in this browser; an item with no recorded sales still uses the quantity threshold.
 - Customer WhatsApp Receipts: After a simulated sale, the merchant can enter the buyer's phone number. The app displays a clickable WhatsApp receipt link on the page; the merchant reviews it and taps Send in WhatsApp. This avoids popup blocking, and messages are not sent automatically.
 - Warehouse SKU Generation: Programmatically strips text spacing and variables on form submission to engineer an immediate, unique tracking SKU code for every product batch.
 - Live Global Currency Engine: Connects to an external exchange rate API to pull market data and automatically convert local pricing into US Dollars ($ USD) side-by-side with Kenyan Shillings (KSh).
@@ -38,8 +39,14 @@ Installation and Launch
 - Execute the unit test framework to inspect code coverage by running npm test.
 - Open index.html in a web browser window tab to manage your vendor hub!
 
-Future Updates
 
-- Safe Cloud User Accounts: Moving user profiles and passwords off the browser storage and into an online secure database server so store accounts can be accessed from any phone or laptop safely.
 
-- Smart Low Stock Alerts: Writing a simple warning script that monitors how fast products are selling out and sends a notification box to the shop owner telling them exactly when it is time to order more stock from their suppliers.
+
+
+
+
+
+
+
+
+

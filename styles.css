@@ -247,6 +247,32 @@ input:focus, select:focus {
     gap: 1rem;
 }
 
+.low-stock-alerts {
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    background: #fffbeb;
+    color: #78350f;
+}
+
+.low-stock-alerts[hidden] {
+    display: none;
+}
+
+.low-stock-alerts h3 {
+    margin-bottom: 0.4rem;
+    font-size: 1rem;
+}
+
+.low-stock-alerts ul {
+    padding-left: 1.25rem;
+}
+
+.low-stock-alerts li + li {
+    margin-top: 0.25rem;
+}
+
 .whatsapp-receipt-notice {
     margin-bottom: 1rem;
     padding: 0.9rem 1rem;

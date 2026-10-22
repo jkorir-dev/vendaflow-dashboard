@@ -18,6 +18,7 @@ const entryForm = document.getElementById('product-entry-form');
 const stockingDateInput = document.getElementById('prod-date');
 const searchInput = document.getElementById('catalog-search');
 const displayGrid = document.getElementById('inventory-grid');
+const lowStockAlerts = document.getElementById('low-stock-alerts');
 const whatsappReceiptNotice = document.getElementById('whatsapp-receipt-notice');
 
 const grossSalesEl = document.getElementById('metric-gross');
@@ -33,6 +34,9 @@ const loggedOutView = document.getElementById('auth-logged-out');
 const loggedInView = document.getElementById('auth-logged-in');
 const userDisplay = document.getElementById('user-display-name');
 const signupEmailInput = document.getElementById('signup-email');
+const SALES_HISTORY_KEY = 'vendaflow_sales_history';
+const SALES_RATE_WINDOW_DAYS = 7;
+const RESTOCK_LEAD_TIME_DAYS = 7;
 
 if (isSupabaseConfigured && signupEmailInput) {
     signupEmailInput.style.display = '';
@@ -117,6 +121,81 @@ function createWhatsAppReceiptUrl(phoneNumber, product) {
     ].join('\n');
 
     return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+}
+
+function getLowStockThreshold(item) {
+    const savedThreshold = Number(item.lowStockThreshold);
+    return Number.isFinite(savedThreshold) && savedThreshold >= 0 ? savedThreshold : 3;
+}
+
+function readSalesHistory() {
+    try {
+        return JSON.parse(localStorage.getItem(SALES_HISTORY_KEY)) || [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function recordCompletedSale(productId) {
+    const now = Date.now();
+    const retentionWindow = SALES_RATE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    const recentSales = readSalesHistory().filter(sale => now - sale.soldAt <= retentionWindow);
+    recentSales.push({ productId: String(productId), soldAt: now });
+    localStorage.setItem(SALES_HISTORY_KEY, JSON.stringify(recentSales));
+}
+
+function getRestockForecast(item, now = Date.now()) {
+    const windowStart = now - SALES_RATE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    const recentSalesCount = readSalesHistory().filter(sale =>
+        sale.productId === String(item.id) && sale.soldAt >= windowStart && sale.soldAt <= now
+    ).length;
+    const averageDailySales = recentSalesCount / SALES_RATE_WINDOW_DAYS;
+    const quantity = Math.max(0, Number(item.stockQuantity) || 0);
+    const daysUntilStockout = averageDailySales > 0 ? quantity / averageDailySales : Infinity;
+
+    return { averageDailySales, daysUntilStockout };
+}
+
+function renderLowStockAlerts(products) {
+    if (!lowStockAlerts) return;
+
+    lowStockAlerts.replaceChildren();
+    const needingRestock = products.map(item => ({
+        item,
+        forecast: getRestockForecast(item)
+    })).filter(({ item, forecast }) =>
+        Number(item.stockQuantity) <= getLowStockThreshold(item) ||
+        forecast.daysUntilStockout <= RESTOCK_LEAD_TIME_DAYS
+    );
+    lowStockAlerts.hidden = needingRestock.length === 0;
+    if (!needingRestock.length) return;
+
+    const heading = document.createElement('h3');
+    heading.textContent = 'Restock alert';
+    lowStockAlerts.append(heading);
+
+    const description = document.createElement('p');
+    description.textContent = 'These items are at or below their reorder point:';
+    lowStockAlerts.append(description);
+
+    const list = document.createElement('ul');
+    needingRestock.forEach(({ item, forecast }) => {
+        const quantity = Number(item.stockQuantity);
+        let recommendation;
+        if (quantity <= 0) {
+            recommendation = 'out of stock — reorder now';
+        } else if (forecast.averageDailySales > 0) {
+            const daysRemaining = Math.max(1, Math.ceil(forecast.daysUntilStockout));
+            recommendation = `about ${quantity} left; selling ~${forecast.averageDailySales.toFixed(1)} per day; reorder within ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}`;
+        } else {
+            recommendation = `${quantity} left — reorder soon`;
+        }
+        const label = `${item.title} (${item.sku}): ${recommendation}.`;
+        const listItem = document.createElement('li');
+        listItem.textContent = label;
+        list.append(listItem);
+    });
+    lowStockAlerts.append(list);
 }
 
 function showWhatsAppReceiptLink(receiptUrl) {
@@ -209,6 +288,10 @@ function showLoggedOutState() {
     grossSalesEl.textContent = 'KSh 0.00';
     platformFeesEl.textContent = 'KSh 0.00';
     netPayoutEl.textContent = 'KSh 0.00';
+    if (lowStockAlerts) {
+        lowStockAlerts.hidden = true;
+        lowStockAlerts.replaceChildren();
+    }
     renderInventoryCatalog([]);
 }
 
@@ -324,7 +407,7 @@ function updateFinancialAnalytics() {
         return;
     }
 
-    const platformFeeRate = 0.10;
+    const platformFeeRate = 0.03;
     const totalGrossRevenue = appInventory.reduce((total, item) =>
         total + Number(item.retailPrice) * Number(item.stockQuantity), 0
     );
@@ -341,6 +424,10 @@ function renderInventoryCatalog(productsList) {
     displayGrid.innerHTML = '';
 
     if (!hasActiveUserSession()) {
+        if (lowStockAlerts) {
+            lowStockAlerts.hidden = true;
+            lowStockAlerts.replaceChildren();
+        }
         displayGrid.innerHTML = `
             <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f1f5f9;">
                 <span style="font-size: 3rem;">🔒</span>
@@ -350,6 +437,8 @@ function renderInventoryCatalog(productsList) {
         `;
         return;
     }
+
+    renderLowStockAlerts(appInventory);
 
     if (productsList.length === 0) {
         displayGrid.innerHTML = '<p class="empty-state">No matching inventory items found.</p>';
@@ -488,6 +577,7 @@ async function handleSaleSimulation(productId) {
 
     try {
         await updateProductStock(productId, { stockQuantity: targetItem.stockQuantity });
+        recordCompletedSale(productId);
         updateFinancialAnalytics();
         renderInventoryCatalog(appInventory);
 
