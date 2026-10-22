@@ -1,4 +1,4 @@
-const API_ORIGIN = globalThis.VENDAFLOW_API_URL || 'https://mockapi.io';
+const API_ORIGIN = globalThis.VENDAFLOW_API_URL || 'http://localhost:3000/products';
 const BASE_URL = `${API_ORIGIN.replace(/\/$/, '')}/products`;
 const CURRENCY_API_URL = 'https://er-api.com';
 
