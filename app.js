@@ -87,11 +87,32 @@ function syncStockingDateLimit() {
 function convertImageToBase64(files) {
     if (!files || files.length === 0) return Promise.resolve(null);
 
-    return new Promise((resolve, reject) => {
-        const fileReader = new FileReader();
-        fileReader.readAsDataURL(files[0]);
-        fileReader.onload = () => resolve(fileReader.result);
-        fileReader.onerror = reject;
+    const imageFile = files[0];
+    return createImageBitmap(imageFile).then(bitmap => {
+        const maxDimension = 1200;
+        const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close();
+
+        return new Promise((resolve, reject) => {
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    reject(new Error('Could not process this image. Try a different image file.'));
+                    return;
+                }
+
+                const fileReader = new FileReader();
+                fileReader.readAsDataURL(blob);
+                fileReader.onload = () => resolve(fileReader.result);
+                fileReader.onerror = reject;
+            }, 'image/webp', 0.8);
+        });
+    }).catch(error => {
+        if (error instanceof Error && error.message.startsWith('Could not process')) throw error;
+        throw new Error('Could not read this image. Try saving it as JPG, PNG, or WebP and upload again.');
     });
 }
 
