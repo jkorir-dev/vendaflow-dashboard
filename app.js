@@ -3,11 +3,6 @@ import {
     deleteProductListing,
     fetchExchangeRates,
     fetchProducts,
-    getSupabaseSession,
-    isSupabaseConfigured,
-    signInUser,
-    signOutUser,
-    signUpUser,
     updateProductStock
 } from './api.js';
 
@@ -16,6 +11,7 @@ let appInventory = [];
 
 const entryForm = document.getElementById('product-entry-form');
 const stockingDateInput = document.getElementById('prod-date');
+const discountPriceInput = document.getElementById('prod-discount');
 const searchInput = document.getElementById('catalog-search');
 const displayGrid = document.getElementById('inventory-grid');
 const lowStockAlerts = document.getElementById('low-stock-alerts');
@@ -39,16 +35,9 @@ const logoutBtn = document.getElementById('btn-logout');
 const loggedOutView = document.getElementById('auth-logged-out');
 const loggedInView = document.getElementById('auth-logged-in');
 const userDisplay = document.getElementById('user-display-name');
-const signupEmailInput = document.getElementById('signup-email');
 const SALES_HISTORY_KEY = 'vendaflow_sales_history';
 const SALES_RATE_WINDOW_DAYS = 7;
 const RESTOCK_LEAD_TIME_DAYS = 7;
-
-if (isSupabaseConfigured && signupEmailInput) {
-    signupEmailInput.style.display = '';
-    signupEmailInput.required = true;
-    document.getElementById('login-username').placeholder = 'Email';
-}
 
 // Date, image, and SKU helpers
 function getLocalDateInputValue(date = new Date()) {
@@ -145,9 +134,14 @@ function createCategoryPlaceholder(item) {
 function createSocialCaption(item) {
     const availableStock = Number(item.stockQuantity) || 0;
     const productUrl = window.location.href.split('#')[0];
+    const originalPrice = Number(item.retailPrice) || 0;
+    const salePrice = getProductSalePrice(item);
+    const priceLine = salePrice < originalPrice
+        ? `🔥 KSh ${salePrice.toLocaleString('en-KE')} (was KSh ${originalPrice.toLocaleString('en-KE')})`
+        : `KSh ${originalPrice.toLocaleString('en-KE')}`;
     return [
         `✨ ${item.title} ✨`,
-        `${item.category} | KSh ${Number(item.retailPrice).toLocaleString('en-KE')}`,
+        `${item.category} | ${priceLine}`,
         `Available now: ${availableStock} in stock`,
         `SKU: ${item.sku}`,
         'Message us to order!',
@@ -176,7 +170,7 @@ function updateSocialPromoComposer() {
     const previousId = socialProductSelect.value;
     socialProductSelect.replaceChildren(new Option('Select a product...', ''));
     appInventory.forEach(item => {
-        const option = new Option(`${item.title} — KSh ${Number(item.retailPrice).toLocaleString('en-KE')}`, String(item.id));
+        const option = new Option(`${item.title} — KSh ${getProductSalePrice(item).toLocaleString('en-KE')}`, String(item.id));
         socialProductSelect.add(option);
     });
 
@@ -227,12 +221,20 @@ function createWhatsAppReceiptUrl(phoneNumber, product) {
         `Item: ${product.title}`,
         `SKU: ${product.sku}`,
         'Quantity: 1',
-        `Unit price: KSh ${Number(product.retailPrice).toLocaleString('en-KE')}`,
+        `Unit price: KSh ${getProductSalePrice(product).toLocaleString('en-KE')}`,
         `Date: ${saleDate}`,
         'Thank you for shopping with us!'
     ].join('\n');
 
     return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+}
+
+function getProductSalePrice(item) {
+    const originalPrice = Number(item.retailPrice) || 0;
+    const discountPrice = Number(item.discountPrice);
+    return Number.isFinite(discountPrice) && discountPrice > 0 && discountPrice < originalPrice
+        ? discountPrice
+        : originalPrice;
 }
 
 function getLowStockThreshold(item) {
@@ -326,10 +328,7 @@ function showWhatsAppReceiptLink(receiptUrl) {
 }
 
 function hasActiveUserSession() {
-    const sessionKey = isSupabaseConfigured
-        ? 'vendaflow_supabase_session'
-        : 'vendaflow_session_user';
-    return Boolean(localStorage.getItem(sessionKey));
+    return Boolean(localStorage.getItem('vendaflow_session_user'));
 }
 
 if (stockingDateInput) {
@@ -358,18 +357,6 @@ async function initializeDashboard() {
 }
 
 async function checkAuthStatus() {
-    if (isSupabaseConfigured) {
-        const session = await getSupabaseSession();
-        if (!session?.user) {
-            showLoggedOutState();
-            return false;
-        }
-
-        const username = session.user.user_metadata?.username || session.user.email;
-        await showLoggedInState(username);
-        return true;
-    }
-
     const cachedUser = localStorage.getItem('vendaflow_session_user');
     if (cachedUser) {
         await showLoggedInState(cachedUser);
@@ -426,16 +413,6 @@ if (loginForm) {
         const loginInput = document.getElementById('login-username').value.trim();
         const passwordInput = document.getElementById('login-password').value;
 
-        if (isSupabaseConfigured) {
-            try {
-                const session = await signInUser(loginInput, passwordInput);
-                await showLoggedInState(session.user.user_metadata?.username || session.user.email);
-            } catch (error) {
-                alert(`Sign in failed: ${error.message}`);
-            }
-            return;
-        }
-
         const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
         const matchingUser = usersDb.find(user =>
             user.username === loginInput && user.password === passwordInput
@@ -458,27 +435,6 @@ if (signupForm) {
         const newUsername = document.getElementById('signup-username').value.trim();
         const newPassword = document.getElementById('signup-password').value;
 
-        if (isSupabaseConfigured) {
-            const email = signupEmailInput.value.trim();
-            try {
-                const result = await signUpUser(email, newPassword, newUsername);
-                if (!result.access_token) {
-                    alert('Account created. Check your email to confirm it, then sign in.');
-                    signupForm.reset();
-                    signupForm.style.display = 'none';
-                    loginForm.style.display = 'flex';
-                    return;
-                }
-
-                await showLoggedInState(result.user.user_metadata?.username || result.user.email);
-                signupForm.style.display = 'none';
-                loginForm.style.display = 'flex';
-            } catch (error) {
-                alert(`Sign up failed: ${error.message}`);
-            }
-            return;
-        }
-
         const usersDb = JSON.parse(localStorage.getItem('vendaflow_users')) || [];
         const userExists = usersDb.some(user => user.username === newUsername);
 
@@ -499,14 +455,8 @@ if (signupForm) {
 
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-        if (isSupabaseConfigured) {
-            signOutUser()
-                .catch(error => console.error('Sign out failed:', error))
-                .finally(showLoggedOutState);
-        } else {
-            localStorage.removeItem('vendaflow_session_user');
-            showLoggedOutState();
-        }
+        localStorage.removeItem('vendaflow_session_user');
+        showLoggedOutState();
     });
 }
 
@@ -521,7 +471,7 @@ function updateFinancialAnalytics() {
 
     const platformFeeRate = 0.03;
     const totalGrossRevenue = appInventory.reduce((total, item) =>
-        total + Number(item.retailPrice) * Number(item.stockQuantity), 0
+        total + getProductSalePrice(item) * Number(item.stockQuantity), 0
     );
     const accumulatedFees = totalGrossRevenue * platformFeeRate;
     const computedNetPayout = totalGrossRevenue - accumulatedFees;
@@ -563,7 +513,11 @@ function renderInventoryCatalog(productsList) {
         const cardNode = document.createElement('div');
         const isOutOfStock = Number(item.stockQuantity) <= 0;
         const conversionRate = Number(window.currentExchangeRates?.KES) || 130;
-        const priceInUSD = (Number(item.retailPrice) / conversionRate).toFixed(2);
+        const originalPrice = Number(item.retailPrice) || 0;
+        const salePrice = getProductSalePrice(item);
+        const hasDiscount = salePrice < originalPrice;
+        const discountPercent = hasDiscount ? Math.round((1 - salePrice / originalPrice) * 100) : 0;
+        const priceInUSD = (salePrice / conversionRate).toFixed(2);
         const productImageSrc = item.imageUrl || createCategoryPlaceholder(item);
         const itemRating = Number(item.rating) || 5;
         let starRatingHtml = '';
@@ -597,7 +551,9 @@ function renderInventoryCatalog(productsList) {
             </div>
             <div style="font-size: 0.9rem; margin-bottom: 1rem;">
                 <p>Cost: <span style="font-weight: 500;">KSh ${item.wholesaleCost}</span></p>
-                <p>Price: <span style="font-weight: 600; color: #2563eb;">KSh ${item.retailPrice} <small style="color:#64748b;">($${priceInUSD} USD)</small></span></p>
+                ${hasDiscount
+                    ? `<p class="discount-badge">-${discountPercent}% OFF</p><p>Original Price: <span class="original-price">KSh ${originalPrice.toLocaleString('en-KE')}</span></p><p>Discounted Sale Price: <span class="discounted-price">KSh ${salePrice.toLocaleString('en-KE')} <small>($${priceInUSD} USD)</small></span></p>`
+                    : `<p>Original Price: <span class="discounted-price">KSh ${originalPrice.toLocaleString('en-KE')} <small>($${priceInUSD} USD)</small></span></p>`}
             </div>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="btn-sale-action" style="flex: 1; padding: 0.4rem; font-size: 0.85rem; cursor: pointer;" ${isOutOfStock ? 'disabled' : ''}>Simulate Sale</button>
@@ -620,10 +576,20 @@ if (entryForm) {
         const inputCategory = document.getElementById('prod-category').value;
         const inputCost = Number(document.getElementById('prod-cost').value);
         const inputRetail = Number(document.getElementById('prod-retail').value);
+        const discountValue = discountPriceInput.value.trim();
+        const inputDiscount = discountValue === '' ? null : Number(discountValue);
         const inputStock = Number(document.getElementById('prod-stock').value);
         const inputDate = stockingDateInput.value;
         const imageFiles = document.getElementById('prod-image').files;
         const dateIsValid = isValidNonFutureDate(inputDate);
+
+        const discountIsValid = inputDiscount === null || (
+            Number.isFinite(inputDiscount) && inputDiscount > 0 && inputDiscount < inputRetail
+        );
+        discountPriceInput.setCustomValidity(
+            discountIsValid ? '' : 'Enter a discount price greater than zero and lower than the original retail price.'
+        );
+        if (!discountPriceInput.reportValidity()) return;
 
         stockingDateInput.setCustomValidity(
             dateIsValid ? '' : 'Choose a valid stocking date that is today or earlier.'
@@ -643,6 +609,7 @@ if (entryForm) {
                 category: inputCategory,
                 wholesaleCost: inputCost,
                 retailPrice: inputRetail,
+                discountPrice: inputDiscount,
                 stockQuantity: inputStock,
                 sku: createProductSku(inputCategory, inputTitle),
                 dateLogged: formattedDate,

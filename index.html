@@ -25,7 +25,6 @@
                 
                 <form id="inline-signup-form" class="inline-auth-form" style="display: none;">
                     <input type="text" id="signup-username" placeholder="Choose Username" required>
-                    <input type="email" id="signup-email" placeholder="Email address" style="display: none;" autocomplete="email">
                     <input type="password" id="signup-password" placeholder="Create Password" required>
                     <button type="submit" class="btn-auth-action btn-success-style">Register</button>
                     <button type="button" id="btn-cancel-signup" class="btn-auth-action btn-logout-style">Cancel</button>
@@ -84,6 +83,10 @@
                             <label for="prod-retail">Retail Sale Price (KSh)</label>
                             <input type="number" id="prod-retail" min="1" placeholder="1200" required>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-discount">Discounted Sale Price (KSh, optional)</label>
+                        <input type="number" id="prod-discount" min="0" step="0.01" placeholder="Leave blank for no discount">
                     </div>
                     <div class="form-group">
                         <label for="prod-stock">Initial Stock Quantity</label>
@@ -145,7 +148,6 @@
         </div>
     </main>
 
-    <script src="supabase-config.js"></script>
-    <script type="module" src="app.js?v=inventory-photo-storage-20261023"></script>
+    <script type="module" src="app.js?v=discount-pricing-20261023"></script>
 </body>
 </html>

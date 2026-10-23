@@ -326,6 +326,32 @@ input:focus, select:focus {
     width: 100%;
 }
 
+.discount-badge {
+    display: inline-block;
+    margin: 0 0 0.35rem;
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.original-price {
+    color: #64748b;
+    text-decoration: line-through;
+}
+
+.discounted-price {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.discounted-price small {
+    color: #64748b;
+    font-weight: 400;
+}
+
 .social-promo-help {
     display: block;
     margin-top: 0.35rem;
