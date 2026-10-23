@@ -332,27 +332,7 @@ input:focus, select:focus {
 }
 
 .social-promo-preview {
-    display: grid;
-    grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
-    gap: 1rem;
     margin-top: 1rem;
-}
-
-.social-promo-preview img,
-.social-image-placeholder {
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: 6px;
-    background: #e2e8f0;
-}
-
-.social-image-placeholder {
-    display: grid;
-    place-items: center;
-    padding: 1rem;
-    color: #64748b;
-    text-align: center;
 }
 
 .social-promo-copy textarea {
@@ -441,15 +421,6 @@ input:focus, select:focus {
 
     .form-panel, .catalog-panel {
         padding: 1rem;
-    }
-
-    .social-promo-preview {
-        grid-template-columns: 1fr;
-    }
-
-    .social-promo-preview img,
-    .social-image-placeholder {
-        max-width: 220px;
     }
 
     .inline-auth-form {

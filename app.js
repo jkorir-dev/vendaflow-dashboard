@@ -22,8 +22,6 @@ const lowStockAlerts = document.getElementById('low-stock-alerts');
 const whatsappReceiptNotice = document.getElementById('whatsapp-receipt-notice');
 const socialProductSelect = document.getElementById('social-product-select');
 const socialPromoPanel = document.getElementById('social-promo-panel');
-const socialProductImage = document.getElementById('social-product-image');
-const socialImagePlaceholder = document.getElementById('social-image-placeholder');
 const socialPromoCaption = document.getElementById('social-promo-caption');
 const copySocialCaptionButton = document.getElementById('btn-copy-social-caption');
 const shareWhatsAppLink = document.getElementById('btn-share-whatsapp');
@@ -139,20 +137,20 @@ function createSocialCaption(item) {
 
 function updateSocialPromoComposer() {
     if (!socialProductSelect) return;
-
-    if (socialPromoPanel) socialPromoPanel.hidden = !hasActiveUserSession();
-    if (!hasActiveUserSession()) {
+    const isSignedIn = hasActiveUserSession();
+    if (!isSignedIn) {
         socialProductSelect.replaceChildren(new Option('Select a product...', ''));
-        socialProductImage.hidden = true;
-        socialImagePlaceholder.hidden = false;
-        socialImagePlaceholder.textContent = 'Log in to create a promotion.';
+        socialProductSelect.disabled = true;
         socialPromoCaption.value = '';
         socialPromoCaption.disabled = true;
         copySocialCaptionButton.disabled = true;
         shareWhatsAppLink.setAttribute('aria-disabled', 'true');
         shareWhatsAppLink.removeAttribute('href');
+        if (socialPromoStatus) socialPromoStatus.textContent = 'Your products are saved in this browser. Sign in to load your inventory.';
         return;
     }
+
+    if (socialPromoPanel) socialPromoPanel.hidden = false;
 
     const previousId = socialProductSelect.value;
     socialProductSelect.replaceChildren(new Option('Select a product...', ''));
@@ -164,29 +162,23 @@ function updateSocialPromoComposer() {
     const selectedItem = appInventory.find(item => String(item.id) === previousId) || appInventory[0];
     if (!selectedItem) {
         socialProductSelect.value = '';
-        socialProductImage.hidden = true;
-        socialImagePlaceholder.hidden = false;
-        socialImagePlaceholder.textContent = 'Add inventory items to create a promotion.';
+        socialProductSelect.disabled = true;
         socialPromoCaption.value = '';
         socialPromoCaption.disabled = true;
         copySocialCaptionButton.disabled = true;
         shareWhatsAppLink.setAttribute('aria-disabled', 'true');
         shareWhatsAppLink.removeAttribute('href');
+        if (socialPromoStatus) socialPromoStatus.textContent = 'No products found in this account yet.';
         return;
     }
 
+    socialProductSelect.disabled = false;
     socialProductSelect.value = String(selectedItem.id);
-    socialImagePlaceholder.hidden = true;
-    socialProductImage.hidden = false;
-    socialProductImage.src = selectedItem.imageUrl || createCategoryPlaceholder(selectedItem);
-    socialProductImage.alt = `${selectedItem.title} product image`;
     socialPromoCaption.value = createSocialCaption(selectedItem);
     socialPromoCaption.disabled = false;
     copySocialCaptionButton.disabled = false;
     updateWhatsAppShareLink();
-    if (socialPromoStatus) socialPromoStatus.textContent = selectedItem.imageUrl
-        ? 'Loaded the saved image for this product.'
-        : `No saved photo for this item; showing an automatic ${selectedItem.category} placeholder.`;
+    if (socialPromoStatus) socialPromoStatus.textContent = `Caption ready for ${selectedItem.title}.`;
 }
 
 function updateWhatsAppShareLink() {
