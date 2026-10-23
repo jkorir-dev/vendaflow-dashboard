@@ -33,7 +33,7 @@ Backend Endpoints
 - PATCH /products/:id: Modifies stock values when a sale triggers.
 - DELETE /products/:id: Erases a data row from the active collection.
 
-New products store an optional `discountPrice`; products without an active discount use `null`.
+
 
 Installation and Launch
 
